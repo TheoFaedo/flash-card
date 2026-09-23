@@ -16,23 +16,25 @@
       <span>Colonne {{ current.column }} sur 7</span>
     </div>
 
-    <article class="study-card" [class.is-revealed]="revealed()" aria-label="Carte de révision">
-      <div class="card-topline">
-        <span>{{ current.subject }}</span>
-        <span>{{ revealed() ? 'Réponse' : 'Question' }}</span>
+    <article class="study-card" aria-label="Carte de révision">
+      <div class="card-flipper" [class.is-flipping]="flipState() === 'flipping'" [class.is-revealed]="flipState() === 'answer'" (transitionend)="finishFlip($event)" (transitioncancel)="finishFlip($event)">
+        <div class="card-face card-front" [attr.aria-hidden]="flipState() === 'answer'">
+          <div class="card-topline"><span>{{ current.subject }}</span><span>Question</span></div>
+          <div class="card-content"><p class="card-text">{{ current.question }}</p></div>
+          <div class="card-footline"><span>flashcard</span><span>{{ current.column }} / 7</span></div>
+        </div>
+        <div class="card-face card-back" [attr.aria-hidden]="flipState() !== 'answer'">
+          <div class="card-topline"><span>{{ current.subject }}</span><span>Réponse</span></div>
+          <div class="card-content">
+            <p class="question-reminder">{{ current.question }}</p>
+            <p class="card-text">{{ current.answer }}</p>
+          </div>
+          <div class="card-footline"><span>flashcard</span><span>{{ current.column }} / 7</span></div>
+        </div>
       </div>
-      <div class="card-content">
-        @if (revealed()) {
-          <p class="question-reminder">{{ current.question }}</p>
-          <p class="card-text">{{ current.answer }}</p>
-        } @else {
-          <p class="card-text">{{ current.question }}</p>
-        }
-      </div>
-      <div class="card-footline"><span>flashcard</span><span>{{ current.column }} / 7</span></div>
     </article>
 
-    @if (revealed()) {
+    @if (flipState() === 'answer') {
       <div class="review-actions" aria-label="Évaluer votre réponse">
         <p>Aviez-vous la bonne réponse ?</p>
         <div class="action-row">
@@ -42,7 +44,7 @@
       </div>
     } @else {
       <div class="review-actions">
-        <button #revealButton type="button" class="button button-primary" (click)="reveal()">Voir la réponse</button>
+        <button #revealButton type="button" class="button button-primary" [attr.aria-disabled]="flipState() === 'flipping'" (click)="reveal()">Voir la réponse</button>
       </div>
     }
   } @else {
