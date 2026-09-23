@@ -1,0 +1,24 @@
+.app-shell { min-height: 100dvh; }
+.site-header {
+  max-width: 1600px;
+  margin: auto;
+  padding: 1.25rem clamp(1rem, 3vw, 3rem);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  border-bottom: 1px solid #d8e3e8;
+}
+.brand { display: inline-flex; align-items: center; gap: .75rem; color: #183344; font-size: 1.3rem; font-weight: 800; text-decoration: none; letter-spacing: -.05em; }
+.brand-mark { width: 1.75rem; height: 1.65rem; display: inline-block; position: relative; }
+.brand-mark span { display: block; position: absolute; width: 1.3rem; height: 1.5rem; border-radius: .23rem; background: #72a2ad; transform: rotate(-13deg); left: .15rem; top: .03rem; }
+.brand-mark span + span { background: #215b70; transform: rotate(9deg); left: .36rem; top: .1rem; }
+nav { display: flex; gap: .35rem; }
+nav a { padding: .65rem .9rem; border-radius: .6rem; color: #526c7c; font-size: .95rem; font-weight: 700; text-decoration: none; }
+nav a:hover, nav a.active { color: #164f64; background: #e1edf1; }
+main { max-width: 1600px; margin: auto; padding: clamp(2rem, 5vw, 4.5rem) clamp(1rem, 3vw, 3rem) 5rem; }
+@media (max-width: 450px) {
+  .site-header { padding-block: .9rem; }
+  .brand { font-size: 1.12rem; }
+  nav a { padding: .55rem .65rem; font-size: .88rem; }
+}

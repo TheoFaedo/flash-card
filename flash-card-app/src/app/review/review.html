@@ -1,0 +1,61 @@
+<section class="review-page" aria-labelledby="page-title">
+  <div class="page-intro">
+    <div>
+      <p class="section-kicker">Votre séance</p>
+      <h1 id="page-title">Réviser aujourd’hui</h1>
+      <p>Une carte à la fois. Répondez dans votre tête, puis retournez-la.</p>
+    </div>
+    <a class="text-link" routerLink="/cartes">Gérer mes cartes <span aria-hidden="true">↗</span></a>
+  </div>
+
+  @if (store.storageError()) {
+    <div class="notice error" role="alert">Le stockage local est indisponible ou contient des données invalides. Vos changements ne peuvent pas être enregistrés.</div>
+  } @else if (card(); as current) {
+    <div class="session-meta" aria-live="polite">
+      <span><strong>{{ store.dueCards().length }}</strong> {{ store.dueCards().length === 1 ? 'carte à réviser' : 'cartes à réviser' }}</span>
+      <span>Colonne {{ current.column }} sur 7</span>
+    </div>
+
+    <article class="study-card" [class.is-revealed]="revealed()" aria-label="Carte de révision">
+      <div class="card-topline">
+        <span>{{ current.subject }}</span>
+        <span>{{ revealed() ? 'Réponse' : 'Question' }}</span>
+      </div>
+      <div class="card-content">
+        @if (revealed()) {
+          <p class="question-reminder">{{ current.question }}</p>
+          <p class="card-text">{{ current.answer }}</p>
+        } @else {
+          <p class="card-text">{{ current.question }}</p>
+        }
+      </div>
+      <div class="card-footline"><span>flashcard</span><span>{{ current.column }} / 7</span></div>
+    </article>
+
+    @if (revealed()) {
+      <div class="review-actions" aria-label="Évaluer votre réponse">
+        <p>Aviez-vous la bonne réponse ?</p>
+        <div class="action-row">
+          <button type="button" class="button button-secondary" (click)="answer(false)">Je me suis trompé</button>
+          <button #correctButton type="button" class="button button-primary" (click)="answer(true)">J’ai répondu juste</button>
+        </div>
+      </div>
+    } @else {
+      <div class="review-actions">
+        <button #revealButton type="button" class="button button-primary" (click)="reveal()">Voir la réponse</button>
+      </div>
+    }
+  } @else {
+    <div class="empty-session">
+      <div class="empty-icon" aria-hidden="true">✓</div>
+      <h2 #emptyHeading tabindex="-1">Aucune carte à réviser aujourd’hui</h2>
+      @if (store.cards().length === 0) {
+        <p>Ajoutez votre première carte. Elle sera à réviser demain.</p>
+        <a class="button button-primary" routerLink="/cartes">Créer une carte</a>
+      } @else {
+        <p>Votre séance est terminée. Revenez à la prochaine échéance.</p>
+        <a class="button button-secondary" routerLink="/cartes">Voir mes cartes</a>
+      }
+    </div>
+  }
+</section>

@@ -1,0 +1,85 @@
+<section class="cards-page" aria-labelledby="page-title">
+  <div class="page-intro">
+    <div>
+      <p class="section-kicker">Votre collection</p>
+      <h1 id="page-title">Mes cartes</h1>
+      <p>Chaque carte suit son rythme de révision, de 1 à 21 jours.</p>
+    </div>
+    <span class="total-count">{{ store.cards().length }} {{ store.cards().length === 1 ? 'carte' : 'cartes' }}</span>
+  </div>
+
+  @if (store.storageError()) {
+    <div class="notice error" role="alert">Le stockage local est indisponible ou contient des données invalides. Vos changements ne peuvent pas être enregistrés.</div>
+  }
+
+  <div class="cards-layout">
+    <section class="editor-panel" aria-labelledby="editor-title">
+      <h2 id="editor-title">{{ editingId() ? 'Modifier la carte' : 'Nouvelle carte' }}</h2>
+      <p>Une nouvelle carte apparaîtra en révision demain.</p>
+      <form [formGroup]="form" (ngSubmit)="submit()">
+        <div class="field">
+          <label for="question">Question</label>
+          <textarea id="question" formControlName="question" rows="3" maxlength="500" [attr.aria-invalid]="form.controls.question.invalid && form.controls.question.touched"></textarea>
+          @if (form.controls.question.invalid && form.controls.question.touched) {
+            <span class="field-error">Saisissez une question.</span>
+          }
+        </div>
+        <div class="field">
+          <label for="answer">Réponse</label>
+          <textarea id="answer" formControlName="answer" rows="4" maxlength="1000" [attr.aria-invalid]="form.controls.answer.invalid && form.controls.answer.touched"></textarea>
+          @if (form.controls.answer.invalid && form.controls.answer.touched) {
+            <span class="field-error">Saisissez une réponse.</span>
+          }
+        </div>
+        <div class="field">
+          <label for="subject">Sujet</label>
+          <select id="subject" formControlName="subject">
+            @for (subject of subjects; track subject) {
+              <option [value]="subject">{{ subject }}</option>
+            }
+          </select>
+        </div>
+        <div class="form-actions">
+          <button class="button button-primary" type="submit" [disabled]="store.storageError()">{{ editingId() ? 'Enregistrer' : 'Ajouter la carte' }}</button>
+          @if (editingId()) {
+            <button class="button button-quiet" type="button" (click)="cancelEdit()">Annuler</button>
+          }
+        </div>
+      </form>
+    </section>
+
+    <section class="collection-panel" aria-labelledby="columns-title">
+      <div class="collection-heading">
+        <h2 id="columns-title">Les 7 colonnes</h2>
+        <p>Faites défiler horizontalement pour voir toutes les colonnes.</p>
+      </div>
+      <div class="columns-scroll" tabindex="0" role="region" aria-label="Colonnes de révision">
+        <div class="columns">
+          @for (column of columns(); track column.number) {
+            <section class="column" [attr.aria-label]="'Colonne ' + column.number">
+              <div class="column-head">
+                <div class="column-number">{{ column.number }}</div>
+                <div><h3>Colonne {{ column.number }}</h3><p>{{ column.days === 1 ? 'Chaque jour' : 'Tous les ' + column.days + ' jours' }}</p></div>
+              </div>
+              <div class="column-body">
+                @for (card of column.cards; track card.id) {
+                  <article class="mini-card">
+                    <span class="mini-subject">{{ card.subject }}</span>
+                    <h4>{{ card.question }}</h4>
+                    <p>À revoir le {{ formatDue(card) }}</p>
+                    <div class="mini-actions">
+                      <button type="button" (click)="startEdit(card)" [attr.aria-label]="'Modifier : ' + card.question">Modifier</button>
+                      <button type="button" (click)="remove(card)" [attr.aria-label]="'Supprimer : ' + card.question">Supprimer</button>
+                    </div>
+                  </article>
+                } @empty {
+                  <p class="column-empty">Aucune carte</p>
+                }
+              </div>
+            </section>
+          }
+        </div>
+      </div>
+    </section>
+  </div>
+</section>
