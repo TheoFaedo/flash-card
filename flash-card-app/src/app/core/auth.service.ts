@@ -61,9 +61,10 @@ export class AuthService {
     const { error } = await this.client.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo:
-          window.location.origin +
-          (returnTo === '/cartes' ? '/connexion/retour-cartes' : '/connexion'),
+        redirectTo: new URL(
+          returnTo === '/cartes' ? 'connexion/retour-cartes' : 'connexion',
+          document.baseURI,
+        ).toString(),
         queryParams: { prompt: 'select_account' },
       },
     });

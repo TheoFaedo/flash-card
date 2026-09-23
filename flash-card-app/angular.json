@@ -37,6 +37,7 @@
           },
           "configurations": {
             "production": {
+              "baseHref": "/flash-card/",
               "budgets": [
                 {
                   "type": "initial",

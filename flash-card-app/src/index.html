@@ -4,6 +4,15 @@
     <meta charset="utf-8" />
     <title>flashcard</title>
     <base href="/" />
+    <script>
+      const params = new URLSearchParams(window.location.search);
+      const path = params.get('p');
+      if (path) {
+        const query = params.get('q');
+        const hash = params.get('h');
+        history.replaceState(null, '', path + (query ? `?${query}` : '') + (hash ? `#${hash}` : ''));
+      }
+    </script>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#f2f6f8" />
   </head>
