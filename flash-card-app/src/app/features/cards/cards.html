@@ -23,16 +23,18 @@
   }
   @if (store.loaded() && !store.loading()) {
     <div class="cards-layout">
-      <section class="editor-panel" aria-labelledby="editor-title">
-        <h2 id="editor-title">{{ editingId() ? 'Modifier la carte' : 'Nouvelle carte' }}</h2>
-        <p>Une nouvelle carte apparaîtra en révision demain.</p>
-        <form [formGroup]="form" (ngSubmit)="submit()">
+      <section class="editor-panel" aria-label="Gestion des cartes et des sujets">
+        <div class="management-grid">
+          <section class="card-editor" aria-labelledby="editor-title">
+            <h2 id="editor-title">{{ editingId() ? 'Modifier la carte' : 'Nouvelle carte' }}</h2>
+            <p>Une nouvelle carte apparaîtra en révision demain.</p>
+            <form [formGroup]="form" (ngSubmit)="submit()">
           <div class="field">
             <label for="question">Question</label>
             <textarea
               id="question"
               formControlName="question"
-              rows="3"
+              rows="4"
               maxlength="500"
               [attr.aria-invalid]="form.controls.question.invalid && form.controls.question.touched"
             ></textarea>
@@ -78,9 +80,10 @@
               </button>
             }
           </div>
-        </form>
+            </form>
+          </section>
 
-        <section class="subjects-panel" aria-labelledby="subjects-title">
+          <section class="subjects-panel" aria-labelledby="subjects-title">
           <h3 id="subjects-title">Gérer les sujets</h3>
           <form (submit)="addSubject(); $event.preventDefault()">
             <div class="field">
@@ -120,9 +123,9 @@
               <li class="subject-empty">Aucun sujet disponible</li>
             }
           </ul>
-        </section>
+          </section>
 
-        <section class="import-panel" aria-labelledby="import-title">
+          <section class="import-panel" aria-labelledby="import-title">
           <h3 id="import-title">Importer des cartes</h3>
           <p>Choisissez un fichier JSON contenant une liste de cartes avec une question, une réponse et, facultativement, un sujet.</p>
           <pre><code>[&#123; "question": "…", "answer": "…", "subject": "…" &#125;]</code></pre>
@@ -149,33 +152,35 @@
           @if (importMessage(); as message) {
             <p role="status">{{ message }}</p>
           }
-        </section>
+          </section>
+        </div>
       </section>
 
       <section class="collection-panel" aria-labelledby="columns-title">
         <div class="collection-heading">
-          <h2 id="columns-title">Les 7 colonnes</h2>
-          <p>Faites défiler horizontalement pour voir toutes les colonnes.</p>
+          <h2 id="columns-title">Révisions par étape</h2>
+          <p>Chaque ligne regroupe les cartes de la même étape.</p>
         </div>
-        <div class="columns-scroll" tabindex="0" role="region" aria-label="Colonnes de révision">
-          <div class="columns">
+        <div class="rows-scroll" tabindex="0" role="region" aria-label="Étapes de révision">
+          <div class="review-rows">
             @for (column of columns(); track column.number) {
-              <section class="column" [attr.aria-label]="'Colonne ' + column.number">
-                <div class="column-head">
+              <section class="review-row" [attr.aria-label]="'Étape ' + column.number">
+                <div class="row-heading">
                   <div class="column-number">{{ column.number }}</div>
-                  <div>
-                    <h3>Colonne {{ column.number }}</h3>
-                    <p>
-                      {{ column.days === 1 ? 'Chaque jour' : 'Tous les ' + column.days + ' jours' }}
-                    </p>
+                  <div class="row-title">
+                    <h3>Étape {{ column.number }}</h3>
+                    <p>{{ column.days === 1 ? 'Chaque jour' : 'Tous les ' + column.days + ' jours' }}</p>
                   </div>
+                  <span class="row-count">{{ column.cards.length }} {{ column.cards.length === 1 ? 'carte' : 'cartes' }}</span>
                 </div>
-                <div class="column-body">
+                <div class="row-cards">
                   @for (card of column.cards; track card.id) {
                     <article class="mini-card">
-                      <span class="mini-subject">{{ card.subject ?? 'Sans sujet' }}</span>
-                      <h4>{{ card.question }}</h4>
-                      <p>À revoir le {{ formatDue(card) }}</p>
+                      <div class="mini-content">
+                        <span class="mini-subject">{{ card.subject ?? 'Sans sujet' }}</span>
+                        <h4>{{ card.question }}</h4>
+                        <p>À revoir le {{ formatDue(card) }}</p>
+                      </div>
                       <div class="mini-actions">
                         <button
                           type="button"
@@ -196,7 +201,7 @@
                       </div>
                     </article>
                   } @empty {
-                    <p class="column-empty">Aucune carte</p>
+                    <p class="row-empty">Aucune carte</p>
                   }
                 </div>
               </section>
