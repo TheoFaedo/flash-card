@@ -25,7 +25,11 @@ export class Review {
   }
 
   protected finishFlip(event: TransitionEvent): void {
-    if (event.target === event.currentTarget && event.propertyName === 'transform' && this.flipState() === 'flipping') {
+    if (
+      event.target === event.currentTarget &&
+      event.propertyName === 'transform' &&
+      this.flipState() === 'flipping'
+    ) {
       this.showAnswer();
     }
   }
@@ -35,12 +39,14 @@ export class Review {
     setTimeout(() => this.correctButton()?.nativeElement.focus());
   }
 
-  protected answer(correct: boolean): void {
+  protected async answer(correct: boolean): Promise<void> {
     const card = this.card();
     if (!card || this.flipState() !== 'answer') return;
-    if (this.store.answer(card.id, correct)) {
+    if (await this.store.answer(card.id, correct)) {
       this.flipState.set('question');
-      setTimeout(() => (this.revealButton()?.nativeElement ?? this.emptyHeading()?.nativeElement)?.focus());
+      setTimeout(() =>
+        (this.revealButton()?.nativeElement ?? this.emptyHeading()?.nativeElement)?.focus(),
+      );
     }
   }
 }

@@ -1,0 +1,6 @@
+// Replace with the public values from Supabase > Project Settings > API.
+// Never put a service_role key or Google client secret in this file.
+export const environment = {
+  supabaseUrl: '',
+  supabasePublishableKey: '',
+};

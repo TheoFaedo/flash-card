@@ -1,156 +1,262 @@
-import { computed, OnDestroy, Service, signal } from '@angular/core';
-import { CardContent, DEFAULT_SUBJECTS, Flashcard } from '../shared/flashcard.model';
+import { computed, effect, inject, OnDestroy, Service, signal } from '@angular/core';
+import { CardContent, Column, Flashcard } from '../shared/flashcard.model';
+import { AuthService } from './auth.service';
 import { answerCard, dueOn, isDue, localDay } from './review-rules';
 
-const LEGACY_STORAGE_KEY = 'flashcard.cards.v1';
-const STORAGE_KEY = 'flashcard.data.v2';
-
-interface StoredData {
-  subjects: string[];
-  cards: Flashcard[];
+interface SubjectRow {
+  id: string;
+  name: string;
+}
+interface CardRow {
+  id: string;
+  question: string;
+  answer: string;
+  subject_id: string | null;
+  column: Column;
+  review_interval_started_on: string;
 }
 
 export function normalizeSubject(value: string): string {
   return value.trim().replace(/\s+/g, ' ');
 }
 
-function isSubject(value: unknown): value is string {
-  return typeof value === 'string' && value === normalizeSubject(value) && value.length > 0 && value.length <= 50;
-}
-
-function hasUniqueSubjects(subjects: string[]): boolean {
-  return new Set(subjects.map((subject) => subject.toLocaleLowerCase('fr'))).size === subjects.length;
-}
-
-function isFlashcard(value: unknown, subjects: string[]): value is Flashcard {
-  if (typeof value !== 'object' || value === null) return false;
-  const card = value as Partial<Flashcard>;
-  return typeof card.id === 'string'
-    && typeof card.question === 'string'
-    && typeof card.answer === 'string'
-    && (card.subject === null || (typeof card.subject === 'string' && subjects.includes(card.subject)))
-    && Number.isInteger(card.column)
-    && Number(card.column) >= 1
-    && Number(card.column) <= 7
-    && typeof card.reviewIntervalStartedOn === 'string'
-    && isValidLocalDay(card.reviewIntervalStartedOn);
-}
-
-function isStoredData(value: unknown): value is StoredData {
-  if (typeof value !== 'object' || value === null) return false;
-  const data = value as Partial<StoredData>;
-  const subjects = data.subjects;
-  return Array.isArray(subjects)
-    && subjects.every(isSubject)
-    && hasUniqueSubjects(subjects)
-    && Array.isArray(data.cards)
-    && data.cards.every((card: unknown) => isFlashcard(card, subjects));
-}
-
-function isValidLocalDay(value: unknown): value is string {
-  if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
-  const [year, month, day] = value.split('-').map(Number);
-  return localDay(new Date(year, month - 1, day, 12)) === value;
-}
-
 @Service()
 export class FlashcardStore implements OnDestroy {
-  readonly storageError = signal(false);
-  private readonly dataState = signal<StoredData>(this.read());
+  private readonly auth = inject(AuthService);
+
+  private readonly subjectRows = signal<SubjectRow[]>([]);
+  private readonly cardRows = signal<CardRow[]>([]);
   private readonly dayState = signal(localDay(new Date()));
   private readonly clock = setInterval(() => this.dayState.set(localDay(new Date())), 60_000);
+  private generation = 0;
 
-  readonly cards = computed(() => this.dataState().cards);
-  readonly subjects = computed(() => this.dataState().subjects);
+  readonly loading = signal(false);
+  readonly loaded = signal(false);
+  readonly saving = signal(false);
+  readonly error = signal<string | null>(null);
+  readonly subjects = computed(() => this.subjectRows().map((subject) => subject.name));
+  readonly cards = computed<Flashcard[]>(() =>
+    this.cardRows().map((row) => ({
+      id: row.id,
+      question: row.question,
+      answer: row.answer,
+      subject: this.subjectRows().find((subject) => subject.id === row.subject_id)?.name ?? null,
+      column: row.column,
+      reviewIntervalStartedOn: row.review_interval_started_on,
+    })),
+  );
   readonly today = this.dayState.asReadonly();
-  readonly dueCards = computed(() => this.cards()
-    .filter((card) => isDue(card, this.dayState()))
-    .sort((a, b) => dueOn(a).localeCompare(dueOn(b))));
+  readonly dueCards = computed(() =>
+    this.cards()
+      .filter((card) => isDue(card, this.dayState()))
+      .sort((a, b) => dueOn(a).localeCompare(dueOn(b))),
+  );
+
+  constructor() {
+    effect(() => {
+      const userId = this.auth.user()?.id;
+      const generation = ++this.generation;
+      this.subjectRows.set([]);
+      this.cardRows.set([]);
+      this.error.set(null);
+      this.loaded.set(false);
+      this.loading.set(!!userId);
+      if (userId) void this.load(userId, generation);
+    });
+  }
 
   ngOnDestroy(): void {
     clearInterval(this.clock);
   }
 
-  add(content: CardContent): boolean {
-    if (!this.hasSubject(content.subject)) return false;
-    return this.save({ subjects: this.subjects(), cards: [
-      ...this.cards(),
-      {
-        id: crypto.randomUUID(),
-        question: content.question.trim(),
-        answer: content.answer.trim(),
-        subject: content.subject,
-        column: 1,
-        reviewIntervalStartedOn: localDay(new Date()),
-      },
-    ] });
+  async reload(): Promise<void> {
+    const userId = this.auth.user()?.id;
+    if (!userId) return;
+    this.loading.set(true);
+    await this.load(userId, this.generation);
   }
 
-  edit(id: string, content: CardContent): boolean {
-    if (!this.hasSubject(content.subject)) return false;
-    return this.save({ subjects: this.subjects(), cards: this.cards().map((card) => card.id === id
-      ? { ...card, question: content.question.trim(), answer: content.answer.trim(), subject: content.subject }
-      : card) });
+  private async load(userId: string, generation: number): Promise<void> {
+    const client = this.auth.client;
+    if (!client) {
+      this.loading.set(false);
+      return;
+    }
+    try {
+      const [subjects, cards] = await Promise.all([
+        client.from('subjects').select('id,name').eq('user_id', userId).order('name'),
+        client
+          .from('cards')
+          .select('id,question,answer,subject_id,column,review_interval_started_on')
+          .eq('user_id', userId)
+          .order('created_at'),
+      ]);
+
+      if (subjects.error) throw subjects.error;
+      if (cards.error) throw cards.error;
+
+      if (generation !== this.generation) return;
+
+      this.subjectRows.set(subjects.data as SubjectRow[]);
+      this.cardRows.set(cards.data as CardRow[]);
+
+      this.loaded.set(true);
+      this.error.set(null);
+    } catch {
+      if (generation === this.generation)
+        this.error.set('Impossible de charger vos données. Vérifiez la connexion puis réessayez.');
+    } finally {
+      if (generation === this.generation) this.loading.set(false);
+    }
   }
 
-  remove(id: string): boolean {
-    return this.save({ subjects: this.subjects(), cards: this.cards().filter((card) => card.id !== id) });
+  private async mutate(action: (userId: string) => Promise<void>): Promise<boolean> {
+    const userId = this.auth.user()?.id;
+
+    if (!userId || !this.auth.client || !this.loaded() || this.loading() || this.saving()) {
+      return false;
+    }
+    this.error.set(null);
+    this.saving.set(true);
+    const generation = this.generation;
+    try {
+      await action(userId);
+      return generation === this.generation;
+    } catch {
+      if (generation === this.generation)
+        this.error.set('Enregistrement impossible. Vérifiez la connexion puis réessayez.');
+      return false;
+    } finally {
+      if (generation === this.generation) this.saving.set(false);
+    }
   }
 
-  answer(id: string, correct: boolean): boolean {
-    return this.save({ subjects: this.subjects(), cards: this.cards().map((card) => card.id === id
-      ? answerCard(card, correct, localDay(new Date()))
-      : card) });
+  private subjectId(name: string | null): string | null | undefined {
+    return name === null ? null : this.subjectRows().find((subject) => subject.name === name)?.id;
   }
 
-  addSubject(value: string): boolean {
-    const subject = normalizeSubject(value);
-    if (!isSubject(subject) || this.subjects().some((item) => item.toLocaleLowerCase('fr') === subject.toLocaleLowerCase('fr'))) return false;
-    return this.save({ subjects: [...this.subjects(), subject], cards: this.cards() });
-  }
-
-  removeSubject(subject: string): boolean {
-    if (!this.subjects().includes(subject)) return false;
-    return this.save({
-      subjects: this.subjects().filter((item) => item !== subject),
-      cards: this.cards().map((card) => card.subject === subject ? { ...card, subject: null } : card),
+  async add(content: CardContent): Promise<boolean> {
+    const subjectId = this.subjectId(content.subject);
+    if (subjectId === undefined) return false;
+    return this.mutate(async (userId) => {
+      const { data, error } = await this.auth
+        .client!.from('cards')
+        .insert({
+          user_id: userId,
+          question: content.question.trim(),
+          answer: content.answer.trim(),
+          subject_id: subjectId,
+          column: 1,
+          review_interval_started_on: localDay(new Date()),
+        })
+        .select('id,question,answer,subject_id,column,review_interval_started_on')
+        .single();
+      if (error) throw error;
+      if (this.auth.user()?.id === userId)
+        this.cardRows.update((rows) => [...rows, data as CardRow]);
     });
   }
 
-  private hasSubject(subject: string | null): boolean {
-    return subject === null || this.subjects().includes(subject);
+  async edit(id: string, content: CardContent): Promise<boolean> {
+    const subjectId = this.subjectId(content.subject);
+    if (subjectId === undefined || !this.cardRows().some((card) => card.id === id)) return false;
+    return this.mutate(async (userId) => {
+      const { data, error } = await this.auth
+        .client!.from('cards')
+        .update({
+          question: content.question.trim(),
+          answer: content.answer.trim(),
+          subject_id: subjectId,
+        })
+        .eq('user_id', userId)
+        .eq('id', id)
+        .select('id,question,answer,subject_id,column,review_interval_started_on')
+        .single();
+      if (error) throw error;
+      if (this.auth.user()?.id === userId)
+        this.cardRows.update((rows) =>
+          rows.map((row) => (row.id === id ? (data as CardRow) : row)),
+        );
+    });
   }
 
-  private read(): StoredData {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw !== null) {
-        const parsed: unknown = JSON.parse(raw);
-        if (isStoredData(parsed)) return parsed;
-      } else {
-        const legacy = localStorage.getItem(LEGACY_STORAGE_KEY);
-        if (legacy === null) return { subjects: [...DEFAULT_SUBJECTS], cards: [] };
-        const parsed: unknown = JSON.parse(legacy);
-        if (Array.isArray(parsed) && parsed.every((card) => isFlashcard(card, DEFAULT_SUBJECTS))) {
-          return { subjects: [...DEFAULT_SUBJECTS], cards: parsed };
-        }
-      }
-    } catch {
-      // Keep stored data untouched if it cannot be read.
-    }
-    this.storageError.set(true);
-    return { subjects: [...DEFAULT_SUBJECTS], cards: [] };
+  async remove(id: string): Promise<boolean> {
+    if (!this.cardRows().some((card) => card.id === id)) return false;
+    return this.mutate(async (userId) => {
+      const { data, error } = await this.auth
+        .client!.from('cards')
+        .delete()
+        .eq('user_id', userId)
+        .eq('id', id)
+        .select('id')
+        .single();
+      if (error || !data) throw error ?? new Error('Carte absente');
+      if (this.auth.user()?.id === userId)
+        this.cardRows.update((rows) => rows.filter((row) => row.id !== id));
+    });
   }
 
-  private save(data: StoredData): boolean {
-    if (this.storageError()) return false;
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-      this.dataState.set(data);
-      return true;
-    } catch {
-      this.storageError.set(true);
+  async answer(id: string, correct: boolean): Promise<boolean> {
+    const card = this.cards().find((item) => item.id === id);
+    if (!card) return false;
+    const next = answerCard(card, correct, localDay(new Date()));
+    return this.mutate(async (userId) => {
+      const { data, error } = await this.auth
+        .client!.from('cards')
+        .update({
+          column: next.column,
+          review_interval_started_on: next.reviewIntervalStartedOn,
+        })
+        .eq('user_id', userId)
+        .eq('id', id)
+        .select('id,question,answer,subject_id,column,review_interval_started_on')
+        .single();
+      if (error) throw error;
+      if (this.auth.user()?.id === userId)
+        this.cardRows.update((rows) =>
+          rows.map((row) => (row.id === id ? (data as CardRow) : row)),
+        );
+    });
+  }
+
+  async addSubject(value: string): Promise<boolean> {
+    const name = normalizeSubject(value);
+    if (
+      !name ||
+      name.length > 50 ||
+      this.subjects().some((item) => item.toLocaleLowerCase('fr') === name.toLocaleLowerCase('fr'))
+    )
       return false;
-    }
+    return this.mutate(async (userId) => {
+      const { data, error } = await this.auth
+        .client!.from('subjects')
+        .insert({ user_id: userId, name })
+        .select('id,name')
+        .single();
+      if (error) throw error;
+      if (this.auth.user()?.id === userId)
+        this.subjectRows.update((rows) => [...rows, data as SubjectRow]);
+    });
+  }
+
+  async removeSubject(name: string): Promise<boolean> {
+    const id = this.subjectId(name);
+    if (!id) return false;
+    return this.mutate(async (userId) => {
+      const { data, error } = await this.auth
+        .client!.from('subjects')
+        .delete()
+        .eq('user_id', userId)
+        .eq('id', id)
+        .select('id')
+        .single();
+      if (error || !data) throw error ?? new Error('Sujet absent');
+      if (this.auth.user()?.id === userId) {
+        this.subjectRows.update((rows) => rows.filter((row) => row.id !== id));
+        this.cardRows.update((rows) =>
+          rows.map((row) => (row.subject_id === id ? { ...row, subject_id: null } : row)),
+        );
+      }
+    });
   }
 }

@@ -33,9 +33,7 @@
                 "input": "public"
               }
             ],
-            "styles": [
-              "src/styles.less"
-            ]
+            "styles": ["src/styles.less"]
           },
           "configurations": {
             "production": {

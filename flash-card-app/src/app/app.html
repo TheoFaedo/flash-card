@@ -4,10 +4,32 @@
       <span class="brand-mark" aria-hidden="true"><span></span><span></span></span>
       <span>flashcard</span>
     </a>
-    <nav aria-label="Navigation principale">
-      <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">Réviser</a>
-      <a routerLink="/cartes" routerLinkActive="active">Mes cartes</a>
-    </nav>
+    @if (auth.user()) {
+      <div class="header-actions">
+        <nav aria-label="Navigation principale">
+          <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }"
+            >Réviser</a
+          >
+          <a routerLink="/cartes" routerLinkActive="active">Mes cartes</a>
+        </nav>
+        <details class="profile-menu">
+          <summary class="profile-pill" [attr.aria-label]="'Compte de ' + profileName()">
+            @if (profileImage(); as image) {
+              <img [src]="image" alt="" referrerpolicy="no-referrer" />
+            } @else {
+              <span class="profile-avatar-fallback" aria-hidden="true">{{
+                profileName().charAt(0).toUpperCase()
+              }}</span>
+            }
+            <span class="profile-name">{{ profileName() }}</span>
+            <span class="profile-chevron" aria-hidden="true"></span>
+          </summary>
+          <div class="profile-dropdown">
+            <button type="button" (click)="signOut()">Se déconnecter</button>
+          </div>
+        </details>
+      </div>
+    }
   </header>
 
   <main id="contenu">

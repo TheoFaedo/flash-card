@@ -1,4 +1,6 @@
-.app-shell { min-height: 100dvh; }
+.app-shell {
+  min-height: 100dvh;
+}
 .site-header {
   max-width: 1600px;
   margin: auto;
@@ -9,16 +11,181 @@
   gap: 1rem;
   border-bottom: 1px solid #d8e3e8;
 }
-.brand { display: inline-flex; align-items: center; gap: .75rem; color: #183344; font-size: 1.3rem; font-weight: 800; text-decoration: none; letter-spacing: -.05em; }
-.brand-mark { width: 1.75rem; height: 1.65rem; display: inline-block; position: relative; }
-.brand-mark span { display: block; position: absolute; width: 1.3rem; height: 1.5rem; border-radius: .23rem; background: #72a2ad; transform: rotate(-13deg); left: .15rem; top: .03rem; }
-.brand-mark span + span { background: #215b70; transform: rotate(9deg); left: .36rem; top: .1rem; }
-nav { display: flex; gap: .35rem; }
-nav a { padding: .65rem .9rem; border-radius: .6rem; color: #526c7c; font-size: .95rem; font-weight: 700; text-decoration: none; }
-nav a:hover, nav a.active { color: #164f64; background: #e1edf1; }
-main { max-width: 1600px; margin: auto; padding: clamp(2rem, 5vw, 4.5rem) clamp(1rem, 3vw, 3rem) 5rem; }
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: #183344;
+  font-size: 1.3rem;
+  font-weight: 800;
+  text-decoration: none;
+  letter-spacing: -0.05em;
+}
+.brand-mark {
+  width: 1.75rem;
+  height: 1.65rem;
+  display: inline-block;
+  position: relative;
+}
+.brand-mark span {
+  display: block;
+  position: absolute;
+  width: 1.3rem;
+  height: 1.5rem;
+  border-radius: 0.23rem;
+  background: #72a2ad;
+  transform: rotate(-13deg);
+  left: 0.15rem;
+  top: 0.03rem;
+}
+.brand-mark span + span {
+  background: #215b70;
+  transform: rotate(9deg);
+  left: 0.36rem;
+  top: 0.1rem;
+}
+.header-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.9rem;
+}
+.profile-menu {
+  position: relative;
+}
+.profile-pill {
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.3rem 0.75rem 0.3rem 0.35rem;
+  border: 1px solid #d8e3e8;
+  border-radius: 999px;
+  color: #183344;
+  cursor: pointer;
+  list-style: none;
+}
+.profile-pill::-webkit-details-marker {
+  display: none;
+}
+.profile-pill:hover,
+.profile-menu[open] .profile-pill {
+  border-color: #9bb8c1;
+  background: #f4f8f9;
+}
+.profile-pill:focus-visible,
+.profile-dropdown button:focus-visible {
+  outline: 3px solid #72a2ad;
+  outline-offset: 3px;
+}
+.profile-pill img,
+.profile-avatar-fallback {
+  width: 2rem;
+  height: 2rem;
+  flex: 0 0 2rem;
+  border-radius: 50%;
+}
+.profile-pill img {
+  object-fit: cover;
+  background: #e1edf1;
+}
+.profile-avatar-fallback {
+  display: grid;
+  place-items: center;
+  background: #215b70;
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: 800;
+}
+.profile-name {
+  max-width: 12rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+.profile-chevron {
+  width: 0.45rem;
+  height: 0.45rem;
+  margin: -0.2rem 0 0 0.15rem;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: rotate(45deg);
+}
+.profile-menu[open] .profile-chevron {
+  margin-top: 0.2rem;
+  transform: rotate(225deg);
+}
+.profile-dropdown {
+  position: absolute;
+  z-index: 5;
+  top: calc(100% + 0.5rem);
+  right: 0;
+  min-width: 11rem;
+  padding: 0.35rem;
+  border: 1px solid #d8e3e8;
+  border-radius: 0.7rem;
+  background: #fff;
+  box-shadow: 0 8px 24px rgb(24 51 68 / 12%);
+}
+.profile-dropdown button {
+  width: 100%;
+  border: 0;
+  border-radius: 0.45rem;
+  background: transparent;
+  padding: 0.7rem 0.8rem;
+  color: #526c7c;
+  font: inherit;
+  font-size: 0.92rem;
+  font-weight: 700;
+  text-align: left;
+  cursor: pointer;
+}
+.profile-dropdown button:hover {
+  background: #e1edf1;
+  color: #164f64;
+}
+nav {
+  display: flex;
+  gap: 0.35rem;
+}
+nav a {
+  padding: 0.65rem 0.9rem;
+  border-radius: 0.6rem;
+  color: #526c7c;
+  font-size: 0.95rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+nav a:hover,
+nav a.active {
+  color: #164f64;
+  background: #e1edf1;
+}
+main {
+  max-width: 1600px;
+  margin: auto;
+  padding: clamp(2rem, 5vw, 4.5rem) clamp(1rem, 3vw, 3rem) 5rem;
+}
 @media (max-width: 450px) {
-  .site-header { padding-block: .9rem; }
-  .brand { font-size: 1.12rem; }
-  nav a { padding: .55rem .65rem; font-size: .88rem; }
+  .site-header {
+    padding-block: 0.9rem;
+    flex-wrap: wrap;
+  }
+  .brand {
+    font-size: 1.12rem;
+  }
+  .header-actions {
+    width: 100%;
+    justify-content: space-between;
+    gap: 0.4rem;
+  }
+  .profile-name {
+    max-width: 7rem;
+  }
+  nav a {
+    padding: 0.55rem 0.65rem;
+    font-size: 0.88rem;
+  }
 }

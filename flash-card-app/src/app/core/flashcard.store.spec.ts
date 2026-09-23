@@ -1,106 +1,119 @@
-import { FlashcardStore } from './flashcard.store';
-import { Subject } from '../shared/flashcard.model';
-import { isDue, localDay } from './review-rules';
 import { TestBed } from '@angular/core/testing';
+import { signal } from '@angular/core';
+import { SupabaseClient, User } from '@supabase/supabase-js';
+import { vi } from 'vitest';
+import { AuthService } from './auth.service';
+import { FlashcardStore } from './flashcard.store';
+import { localDay } from './review-rules';
 
 describe('FlashcardStore', () => {
-  const legacyKey = 'flashcard.cards.v1';
-  const key = 'flashcard.data.v2';
-
-  beforeEach(() => {
-    localStorage.removeItem(key);
-    localStorage.removeItem(legacyKey);
-  });
-  afterEach(() => {
-    localStorage.removeItem(key);
-    localStorage.removeItem(legacyKey);
-  });
-
-  it('is available to routed components through Angular injection', () => {
+  function setup() {
+    const subjects = [{ id: 's1', name: 'Général' }];
+    const cards: Array<Record<string, unknown>> = [];
+    let fail = false;
+    let nextId = 1;
+    const user = signal({ id: 'user-one' } as User | null);
+    const from = vi.fn((table: string) => {
+      let operation: 'select' | 'insert' | 'update' | 'delete' = 'select';
+      let values: Record<string, unknown> = {};
+      let id: string | undefined;
+      const source = () => (table === 'subjects' ? subjects : cards);
+      const result = () => {
+        if (fail) return { data: null, error: new Error('network') };
+        const rows = source();
+        if (operation === 'insert') {
+          const row = { id: `new-${nextId++}`, ...values };
+          if (table === 'subjects') subjects.push(row as (typeof subjects)[number]);
+          else cards.push(row);
+          return { data: row, error: null };
+        }
+        if (operation === 'update') {
+          const row = rows.find((item) => item['id'] === id);
+          if (row) Object.assign(row, values);
+          return { data: row ?? null, error: row ? null : new Error('missing') };
+        }
+        if (operation === 'delete') {
+          const index = rows.findIndex((item) => item['id'] === id);
+          if (index < 0) return { data: null, error: new Error('missing') };
+          const [row] = rows.splice(index, 1);
+          if (table === 'subjects')
+            for (const card of cards) if (card['subject_id'] === id) card['subject_id'] = null;
+          return { data: row, error: null };
+        }
+        return { data: [...rows], error: null };
+      };
+      const query = {
+        select: () => query,
+        insert: (input: Record<string, unknown>) => {
+          operation = 'insert' as const;
+          values = input;
+          return query;
+        },
+        update: (input: Record<string, unknown>) => {
+          operation = 'update' as const;
+          values = input;
+          return query;
+        },
+        delete: () => {
+          operation = 'delete' as const;
+          return query;
+        },
+        eq: (field: string, value: string) => {
+          if (field === 'id') id = value;
+          return query;
+        },
+        order: async () => result(),
+        single: async () => result(),
+      };
+      return query;
+    });
+    const auth = { user, client: { from } as unknown as SupabaseClient };
+    TestBed.configureTestingModule({ providers: [{ provide: AuthService, useValue: auth }] });
     const store = TestBed.inject(FlashcardStore);
+    TestBed.tick();
+    return {
+      store,
+      user,
+      subjects,
+      cards,
+      setFail: (value: boolean) => {
+        fail = value;
+      },
+    };
+  }
+
+  it('loads account data and confirms card and subject changes after database success', async () => {
+    const { store } = setup();
+    await store.reload();
+    expect(store.subjects()).toEqual(['Général']);
+    expect(await store.add({ question: 'Q', answer: 'R', subject: 'Général' })).toBe(true);
+    expect(store.cards()[0]).toMatchObject({
+      question: 'Q',
+      column: 1,
+      reviewIntervalStartedOn: localDay(new Date()),
+    });
+    const id = store.cards()[0].id;
+    expect(await store.edit(id, { question: 'Q2', answer: 'R2', subject: null })).toBe(true);
+    expect(store.cards()[0].subject).toBeNull();
+    expect(await store.answer(id, true)).toBe(true);
+    expect(store.cards()[0].column).toBe(2);
+    expect(await store.addSubject('Histoire')).toBe(true);
+    expect(await store.removeSubject('Histoire')).toBe(true);
+    expect(await store.remove(id)).toBe(true);
     expect(store.cards()).toEqual([]);
   });
 
-  it('persists a new card with an interval beginning today', () => {
-    const store = new FlashcardStore();
-    const content = { question: 'Pourquoi ?', answer: 'Parce que.', subject: Subject.General };
-
-    expect(store.add(content)).toBe(true);
-    expect(store.cards()).toHaveLength(1);
-    expect(store.cards()[0].reviewIntervalStartedOn).toBe(localDay(new Date()));
-    expect(isDue(store.cards()[0], localDay(new Date()))).toBe(false);
-
-    const restored = new FlashcardStore();
-    expect(restored.cards()).toEqual(store.cards());
-    store.ngOnDestroy();
-    restored.ngOnDestroy();
-  });
-
-  it('saves the new column and interval start after an answer', () => {
-    const store = new FlashcardStore();
-    store.add({ question: 'Q', answer: 'R', subject: Subject.General });
-    const id = store.cards()[0].id;
-
-    expect(store.answer(id, true)).toBe(true);
-    expect(store.cards()[0].column).toBe(2);
-    expect(store.cards()[0].reviewIntervalStartedOn).toBe(localDay(new Date()));
-
-    const restored = new FlashcardStore();
-    expect(restored.cards()[0].column).toBe(2);
-    store.ngOnDestroy();
-    restored.ngOnDestroy();
-  });
-
-  it('loads legacy cards and retains them when subjects are changed', () => {
-    localStorage.setItem(legacyKey, JSON.stringify([{
-      id: 'old', question: 'Question', answer: 'Réponse', subject: Subject.History,
-      column: 2, reviewIntervalStartedOn: localDay(new Date()),
-    }]));
-    const store = new FlashcardStore();
-
-    expect(store.cards()[0].subject).toBe(Subject.History);
-    expect(store.subjects()).toContain(Subject.History);
-    expect(store.addSubject('  Géographie   humaine  ')).toBe(true);
-    expect(store.subjects()).toContain('Géographie humaine');
-    expect(store.removeSubject(Subject.History)).toBe(true);
-    expect(store.cards()[0]).toMatchObject({ id: 'old', subject: null, column: 2 });
-
-    const restored = new FlashcardStore();
-    expect(restored.cards()).toEqual(store.cards());
-    expect(restored.subjects()).toEqual(store.subjects());
-    expect(localStorage.getItem(legacyKey)).not.toBeNull();
-    store.ngOnDestroy();
-    restored.ngOnDestroy();
-  });
-
-  it('rejects invalid or duplicate subjects and permits removing the last one', () => {
-    const store = new FlashcardStore();
-    expect(store.addSubject('   ')).toBe(false);
-    expect(store.addSubject('x'.repeat(51))).toBe(false);
-    expect(store.addSubject('  GÉNÉRAL  ')).toBe(false);
-    expect(store.subjects()).toHaveLength(5);
-
-    for (const subject of [...store.subjects()]) expect(store.removeSubject(subject)).toBe(true);
+  it('keeps visible data unchanged when saving fails and clears it on sign-out', async () => {
+    const { store, user, setFail } = setup();
+    await store.reload();
+    expect(await store.add({ question: 'Q', answer: 'R', subject: null })).toBe(true);
+    setFail(true);
+    expect(await store.answer(store.cards()[0].id, true)).toBe(false);
+    expect(store.cards()[0].column).toBe(1);
+    expect(store.error()).toContain('Enregistrement impossible');
+    user.set(null);
+    TestBed.tick();
+    expect(store.cards()).toEqual([]);
     expect(store.subjects()).toEqual([]);
-    expect(store.add({ question: 'Q', answer: 'R', subject: null })).toBe(true);
-    expect(store.add({ question: 'Q2', answer: 'R2', subject: Subject.General })).toBe(false);
-
-    const restored = new FlashcardStore();
-    expect(restored.subjects()).toEqual([]);
-    expect(restored.cards()[0].subject).toBeNull();
-    store.ngOnDestroy();
-    restored.ngOnDestroy();
-  });
-
-  it('does not load malformed current data or overwrite it', async () => {
-    const invalid = JSON.stringify({ subjects: [], cards: [{ subject: Subject.General }] });
-    localStorage.setItem(key, invalid);
-    const store = new FlashcardStore();
-    await Promise.resolve();
-
-    expect(store.storageError()).toBe(true);
-    expect(store.addSubject('Autre')).toBe(false);
-    expect(localStorage.getItem(key)).toBe(invalid);
-    store.ngOnDestroy();
   });
 });
