@@ -34,7 +34,8 @@
         <div class="field">
           <label for="subject">Sujet</label>
           <select id="subject" formControlName="subject">
-            @for (subject of subjects; track subject) {
+            <option value="">Aucun sujet</option>
+            @for (subject of store.subjects(); track subject) {
               <option [value]="subject">{{ subject }}</option>
             }
           </select>
@@ -46,6 +47,30 @@
           }
         </div>
       </form>
+
+      <section class="subjects-panel" aria-labelledby="subjects-title">
+        <h3 id="subjects-title">Gérer les sujets</h3>
+        <form (submit)="addSubject(); $event.preventDefault()">
+          <div class="field">
+            <label for="subject-name">Nouveau sujet</label>
+            <input #subjectNameInput id="subject-name" type="text" [formControl]="subjectName" maxlength="50" [attr.aria-invalid]="subjectNameError() !== null" [attr.aria-describedby]="subjectNameError() ? 'subject-name-error' : null" (input)="subjectNameError.set(null)">
+            @if (subjectNameError(); as error) {
+              <span id="subject-name-error" class="field-error" role="alert">{{ error }}</span>
+            }
+          </div>
+          <button class="button button-secondary" type="submit" [disabled]="store.storageError()">Ajouter le sujet</button>
+        </form>
+        <ul class="subject-list" aria-label="Sujets disponibles">
+          @for (subject of store.subjects(); track subject) {
+            <li>
+              <span>{{ subject }}</span>
+              <button type="button" (click)="removeSubject(subject)" [disabled]="store.storageError()" [attr.aria-label]="'Retirer le sujet ' + subject">Retirer</button>
+            </li>
+          } @empty {
+            <li class="subject-empty">Aucun sujet disponible</li>
+          }
+        </ul>
+      </section>
     </section>
 
     <section class="collection-panel" aria-labelledby="columns-title">
@@ -64,7 +89,7 @@
               <div class="column-body">
                 @for (card of column.cards; track card.id) {
                   <article class="mini-card">
-                    <span class="mini-subject">{{ card.subject }}</span>
+                    <span class="mini-subject">{{ card.subject ?? 'Sans sujet' }}</span>
                     <h4>{{ card.question }}</h4>
                     <p>À revoir le {{ formatDue(card) }}</p>
                     <div class="mini-actions">

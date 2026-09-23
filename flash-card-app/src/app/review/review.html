@@ -19,12 +19,12 @@
     <article class="study-card" aria-label="Carte de révision">
       <div class="card-flipper" [class.is-flipping]="flipState() === 'flipping'" [class.is-revealed]="flipState() === 'answer'" (transitionend)="finishFlip($event)" (transitioncancel)="finishFlip($event)">
         <div class="card-face card-front" [attr.aria-hidden]="flipState() === 'answer'">
-          <div class="card-topline"><span>{{ current.subject }}</span><span>Question</span></div>
+          <div class="card-topline"><span>{{ current.subject ?? 'Sans sujet' }}</span><span>Question</span></div>
           <div class="card-content"><p class="card-text">{{ current.question }}</p></div>
           <div class="card-footline"><span>flashcard</span><span>{{ current.column }} / 7</span></div>
         </div>
         <div class="card-face card-back" [attr.aria-hidden]="flipState() !== 'answer'">
-          <div class="card-topline"><span>{{ current.subject }}</span><span>Réponse</span></div>
+          <div class="card-topline"><span>{{ current.subject ?? 'Sans sujet' }}</span><span>Réponse</span></div>
           <div class="card-content">
             <p class="question-reminder">{{ current.question }}</p>
             <p class="card-text">{{ current.answer }}</p>

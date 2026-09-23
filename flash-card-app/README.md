@@ -19,4 +19,4 @@ Ouvrir ensuite `http://localhost:4200/`. Les commandes `bun run build` et `bun r
 - Une réponse juste fait avancer d'une colonne ; une réponse fausse fait reculer d'une colonne. Les colonnes 1 et 7 sont les limites.
 - `reviewIntervalStartedOn` indique la date de début de l'intervalle actuel. Elle prend la date du jour à l'ajout et après chaque réponse. L'échéance est cette date plus l'intervalle de la colonne actuelle.
 
-Les sujets proposés pour l'instant sont définis dans `src/app/flashcards/flashcard.model.ts`.
+Les sujets se gèrent depuis « Mes cartes » et restent enregistrés dans le navigateur. Une carte peut aussi être sans sujet. Retirer un sujet conserve ses cartes et les passe à « Sans sujet ».

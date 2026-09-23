@@ -8,10 +8,15 @@ import { Review } from './review';
 
 describe('Review', () => {
   const key = 'flashcard.cards.v1';
+  const currentKey = 'flashcard.data.v2';
 
-  beforeEach(() => localStorage.removeItem(key));
+  beforeEach(() => {
+    localStorage.removeItem(key);
+    localStorage.removeItem(currentKey);
+  });
   afterEach(() => {
     localStorage.removeItem(key);
+    localStorage.removeItem(currentKey);
     vi.unstubAllGlobals();
   });
 
@@ -90,5 +95,16 @@ describe('Review', () => {
     expect(root.querySelector('.card-flipper')?.classList.contains('is-flipping')).toBe(false);
     expect(root.querySelector('.action-row')).not.toBeNull();
     expect(root.querySelector('.card-back')?.getAttribute('aria-hidden')).toBe('false');
+  });
+
+  it('shows Sans sujet on both sides of an unassigned card', async () => {
+    localStorage.setItem(currentKey, JSON.stringify({ subjects: [], cards: [{ ...dueCard('one'), subject: null }] }));
+    const { fixture, root } = await setup([]);
+
+    expect(root.querySelector('.card-front .card-topline')?.textContent).toContain('Sans sujet');
+    (root.querySelector('.review-actions button') as HTMLButtonElement).click();
+    finishFlip(root);
+    fixture.detectChanges();
+    expect(root.querySelector('.card-back .card-topline')?.textContent).toContain('Sans sujet');
   });
 });
