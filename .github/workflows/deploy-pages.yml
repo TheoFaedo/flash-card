@@ -27,6 +27,24 @@ jobs:
       - name: Install dependencies
         working-directory: flash-card-app
         run: bun install --frozen-lockfile
+      - name: Create Supabase environment file
+        working-directory: flash-card-app
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
+        run: |
+          node -e '
+            const { writeFileSync } = require("node:fs");
+            const { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } = process.env;
+            if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
+              throw new Error("SUPABASE_URL and SUPABASE_PUBLISHABLE_KEY secrets are required");
+            }
+            const contents = `export const environment = ${JSON.stringify({
+              supabaseUrl: SUPABASE_URL,
+              supabasePublishableKey: SUPABASE_PUBLISHABLE_KEY,
+            }, null, 2)};\n`;
+            writeFileSync("src/environments/environment.ts", contents);
+          '
       - name: Build Angular app
         working-directory: flash-card-app
         run: bun run build
