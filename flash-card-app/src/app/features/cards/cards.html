@@ -121,6 +121,35 @@
             }
           </ul>
         </section>
+
+        <section class="import-panel" aria-labelledby="import-title">
+          <h3 id="import-title">Importer des cartes</h3>
+          <p>Choisissez un fichier JSON contenant une liste de cartes avec une question, une réponse et, facultativement, un sujet.</p>
+          <pre><code>[&#123; "question": "…", "answer": "…", "subject": "…" &#125;]</code></pre>
+          <p>Besoin de générer le fichier à partir de documents ? Copiez ce modèle de prompt, complétez les paramètres et collez vos sources dans votre agent IA.</p>
+          <button class="button button-secondary" type="button" (click)="copyImportPrompt()">
+            Copier le prompt avec exemples
+          </button>
+          @if (promptCopyMessage(); as message) {
+            <p role="status" aria-live="polite">{{ message }}</p>
+          }
+          <div class="field">
+            <label for="cards-json">Fichier JSON</label>
+            <input id="cards-json" type="file" accept=".json,application/json" (change)="readImport($event)" />
+          </div>
+          @if (importError(); as error) {
+            <p class="field-error" role="alert">{{ error }}</p>
+          }
+          @if (importCards().length) {
+            <p role="status">{{ importFilename() }} : {{ importCards().length }} {{ importCards().length === 1 ? 'carte prête' : 'cartes prêtes' }} à importer.</p>
+            <button class="button button-primary" type="button" (click)="confirmImport()" [disabled]="store.saving()">
+              {{ store.saving() ? 'Importation…' : 'Importer les cartes' }}
+            </button>
+          }
+          @if (importMessage(); as message) {
+            <p role="status">{{ message }}</p>
+          }
+        </section>
       </section>
 
       <section class="collection-panel" aria-labelledby="columns-title">

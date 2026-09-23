@@ -20,6 +20,12 @@ export function normalizeSubject(value: string): string {
   return value.trim().replace(/\s+/g, ' ');
 }
 
+export interface ImportedCard {
+  question: string;
+  answer: string;
+  subject: string | null;
+}
+
 @Service()
 export class FlashcardStore implements OnDestroy {
   private readonly auth = inject(AuthService);
@@ -154,6 +160,32 @@ export class FlashcardStore implements OnDestroy {
       if (error) throw error;
       if (this.auth.user()?.id === userId)
         this.cardRows.update((rows) => [...rows, data as CardRow]);
+    });
+  }
+
+  async importCards(contents: ImportedCard[]): Promise<boolean> {
+    if (contents.length === 0) return false;
+    return this.mutate(async (userId) => {
+      const client = this.auth.client!;
+      const names = [...new Set(contents.map((card) => card.subject).filter((name): name is string => !!name))];
+      for (const name of names) {
+        if (this.subjectId(name) !== undefined) continue;
+        const { data, error } = await client.from('subjects').insert({ user_id: userId, name }).select('id,name').single();
+        if (error) throw error;
+        if (this.auth.user()?.id === userId) this.subjectRows.update((rows) => [...rows, data as SubjectRow]);
+      }
+      const today = localDay(new Date());
+      const rows = contents.map((card) => ({
+        user_id: userId,
+        question: card.question.trim(),
+        answer: card.answer.trim(),
+        subject_id: this.subjectId(card.subject) ?? null,
+        column: 1 as Column,
+        review_interval_started_on: today,
+      }));
+      const { data, error } = await client.from('cards').insert(rows).select('id,question,answer,subject_id,column,review_interval_started_on');
+      if (error) throw error;
+      if (this.auth.user()?.id === userId) this.cardRows.update((current) => [...current, ...(data as CardRow[])]);
     });
   }
 

@@ -1,3 +1,11 @@
 [mcp_servers.angular-cli]
 command = "npx"
 args = ["-y", "@angular/cli", "mcp"]
+
+[[hooks.Stop]]
+
+[[hooks.Stop.hooks]]
+type = "command"
+command = "bash \"$(git rev-parse --show-toplevel)/flash-card-app/.codex/hooks/lint-format.sh\""
+timeout = 600
+statusMessage = "Linting and formatting the project"
