@@ -1,4 +1,4 @@
-import { Column, Flashcard, REVIEW_INTERVALS } from './flashcard.model';
+import { Column, Flashcard, REVIEW_INTERVALS } from '../shared/flashcard.model';
 
 export function localDay(date: Date): string {
   const year = date.getFullYear();

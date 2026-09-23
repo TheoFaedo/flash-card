@@ -4,12 +4,12 @@ export const routes: Routes = [
   {
     path: '',
     title: 'Réviser · flashcard',
-    loadComponent: () => import('./review/review').then((m) => m.Review),
+    loadComponent: () => import('./features/review/review').then((m) => m.Review),
   },
   {
     path: 'cartes',
     title: 'Mes cartes · flashcard',
-    loadComponent: () => import('./cards/cards').then((m) => m.Cards),
+    loadComponent: () => import('./features/cards/cards').then((m) => m.Cards),
   },
   { path: '**', redirectTo: '' },
 ];

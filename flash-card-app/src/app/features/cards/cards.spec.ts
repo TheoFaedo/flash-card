@@ -1,7 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { vi } from 'vitest';
-import { FlashcardStore } from '../flashcards/flashcard.store';
-import { Subject } from '../flashcards/flashcard.model';
+import { FlashcardStore } from '../../core/flashcard.store';
+import { Subject } from '../../shared/flashcard.model';
 import { Cards } from './cards';
 
 describe('Cards', () => {

@@ -1,5 +1,5 @@
 import { computed, OnDestroy, Service, signal } from '@angular/core';
-import { CardContent, DEFAULT_SUBJECTS, Flashcard } from './flashcard.model';
+import { CardContent, DEFAULT_SUBJECTS, Flashcard } from '../shared/flashcard.model';
 import { answerCard, dueOn, isDue, localDay } from './review-rules';
 
 const LEGACY_STORAGE_KEY = 'flashcard.cards.v1';

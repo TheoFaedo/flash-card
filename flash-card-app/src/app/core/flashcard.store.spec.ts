@@ -1,5 +1,5 @@
 import { FlashcardStore } from './flashcard.store';
-import { Subject } from './flashcard.model';
+import { Subject } from '../shared/flashcard.model';
 import { isDue, localDay } from './review-rules';
 import { TestBed } from '@angular/core/testing';
 

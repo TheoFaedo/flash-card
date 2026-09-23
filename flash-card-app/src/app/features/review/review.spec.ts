@@ -1,9 +1,9 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { vi } from 'vitest';
-import { Flashcard, Subject } from '../flashcards/flashcard.model';
-import { FlashcardStore } from '../flashcards/flashcard.store';
-import { localDay } from '../flashcards/review-rules';
+import { Flashcard, Subject } from '../../shared/flashcard.model';
+import { FlashcardStore } from '../../core/flashcard.store';
+import { localDay } from '../../core/review-rules';
 import { Review } from './review';
 
 describe('Review', () => {

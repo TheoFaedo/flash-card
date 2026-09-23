@@ -1,6 +1,6 @@
 import { Component, computed, ElementRef, inject, signal, viewChild } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { FlashcardStore } from '../flashcards/flashcard.store';
+import { FlashcardStore } from '../../core/flashcard.store';
 
 @Component({
   imports: [RouterLink],

@@ -1,8 +1,8 @@
 import { Component, computed, ElementRef, inject, signal, viewChild } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { CardContent, Column, Flashcard, REVIEW_INTERVALS, Subject } from '../flashcards/flashcard.model';
-import { FlashcardStore, normalizeSubject } from '../flashcards/flashcard.store';
-import { dueOn } from '../flashcards/review-rules';
+import { CardContent, Column, Flashcard, REVIEW_INTERVALS, Subject } from '../../shared/flashcard.model';
+import { FlashcardStore, normalizeSubject } from '../../core/flashcard.store';
+import { dueOn } from '../../core/review-rules';
 
 @Component({
   imports: [ReactiveFormsModule],

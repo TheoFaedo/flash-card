@@ -1,4 +1,4 @@
-import { Flashcard, REVIEW_INTERVALS, Subject } from './flashcard.model';
+import { Flashcard, REVIEW_INTERVALS, Subject } from '../shared/flashcard.model';
 import { answerCard, dueOn, isDue } from './review-rules';
 
 const card: Flashcard = {
