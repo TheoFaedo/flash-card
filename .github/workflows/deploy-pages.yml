@@ -20,7 +20,7 @@ jobs:
     environment: prod
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - name: Install Bun
         uses: oven-sh/setup-bun@v2
         with:
@@ -50,7 +50,7 @@ jobs:
         working-directory: flash-card-app
         run: bun run build
       - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v5
         with:
           path: flash-card-app/dist/flash-card-app/browser
 
@@ -63,4 +63,4 @@ jobs:
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
