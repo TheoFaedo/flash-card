@@ -180,19 +180,22 @@
   gap: 0.55rem;
 }
 .review-row {
-  display: grid;
-  grid-template-columns: minmax(155px, 0.24fr) minmax(0, 1fr);
+  display: flex;
+  flex-wrap: wrap;
+  min-width: 0;
   gap: 0.75rem;
-  align-items: center;
+  align-items: start;
   background: #e6eef1;
   border: 1px solid #d3e0e5;
   border-radius: 0.85rem;
   padding: 0.7rem;
 }
 .row-heading {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
+  display: flex;
+  flex: 0 0 100%;
+  flex-wrap: wrap;
   align-items: center;
+  justify-content: space-between;
   gap: 0.65rem;
 }
 .column-number {
@@ -208,6 +211,7 @@
 }
 .row-title {
   display: grid;
+  flex: 1 1 auto;
   gap: 0.2rem;
 }
 .row-title h3 {
@@ -225,6 +229,8 @@
 }
 .row-cards {
   display: grid;
+  flex: 1 1 100%;
+  min-width: 0;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
   gap: 0.55rem;
 
@@ -330,9 +336,7 @@
     max-width: none;
     text-align: left;
   }
-  .review-row {
-    grid-template-columns: 1fr;
-  }
+
   .row-heading {
     flex-wrap: wrap;
   }
