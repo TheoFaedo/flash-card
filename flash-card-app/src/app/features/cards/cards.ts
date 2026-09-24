@@ -175,6 +175,27 @@ export class Cards {
     }
   }
 
+  protected exportCards(): void {
+    const cards = this.store.cards().map(({ question, answer, subject }) => ({
+      question,
+      answer,
+      subject,
+    }));
+    if (!this.store.loaded() || this.store.loading() || cards.length === 0) return;
+
+    const now = new Date();
+    const date = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    const blob = new Blob([`${JSON.stringify(cards, null, 2)}\n`], {
+      type: 'application/json;charset=utf-8',
+    });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `cartes-${date}.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
   protected async copyImportPrompt(): Promise<void> {
     const prompt = `À partir des sources fournies à la fin, crée des cartes de révision autonomes et utiles.
 

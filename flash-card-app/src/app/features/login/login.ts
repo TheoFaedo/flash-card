@@ -50,6 +50,8 @@ export class Login {
   }
 
   private returnTo(): string {
+    const requested = this.route.snapshot.queryParamMap.get('returnTo');
+    if (requested?.startsWith('/') && !requested.startsWith('//')) return requested;
     return this.route.snapshot.routeConfig?.path === 'connexion/retour-cartes' ? '/cartes' : '/';
   }
 

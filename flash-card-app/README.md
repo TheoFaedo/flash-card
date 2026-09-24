@@ -23,6 +23,30 @@ Les rafraîchissements sur les routes Angular sont redirigés par le `404.html` 
 
 Les [instructions Supabase pour Google](https://supabase.com/docs/guides/auth/social-login/auth-google) et les [URL de retour](https://supabase.com/docs/guides/auth/redirect-urls) détaillent les réglages du fournisseur.
 
+## Serveur MCP distant
+
+Le serveur MCP est une Edge Function à l'adresse `https://<project-ref>.supabase.co/functions/v1/mcp`. Il expose `list_cards`, `get_card` et `update_card`. L'authentification et les appels aux tables passent par Supabase Auth et les règles RLS existantes ; chaque assistant agit avec les droits du compte qui a donné son consentement.
+
+Pour le déployer avec Supabase CLI (version 2.117 ou ultérieure) :
+
+```bash
+supabase login
+supabase link --project-ref <project-ref>
+supabase functions deploy mcp
+```
+
+Le fichier `supabase/config.toml` désactive la vérification JWT du gateway pour cette seule fonction : le middleware OAuth de la fonction publie les métadonnées de ressource protégée puis vérifie lui-même le jeton utilisateur.
+
+Dans Supabase Dashboard :
+
+1. Dans **Authentication → OAuth Server**, activer OAuth 2.1 et l'enregistrement dynamique des clients MCP. Choisir `/oauth/consent` comme Authorization Path. Examiner et révoquer les clients enregistrés au besoin.
+2. Dans **Authentication → URL Configuration**, conserver le site de l'application comme Site URL (`https://theofaedo.github.io/flash-card/` en production) et ajouter `https://theofaedo.github.io/flash-card/oauth/consent` aux Redirect URLs. Ajouter l'URL locale `http://localhost:4200/oauth/consent` pour les essais locaux.
+3. Les jetons OAuth MCP doivent utiliser une clé de signature JWT asymétrique (ES256 ou RS256), requise par le middleware d'Edge Function.
+
+L'écran `/oauth/consent` de l'application affiche le nom du client, le compte et les autorisations demandées. L'utilisateur peut accepter ou refuser; après acceptation, les appels MCP sont isolés par les politiques RLS. La connexion utilise les fournisseurs déjà activés dans Supabase, notamment Google. Pour connecter un client compatible, lui fournir l'URL MCP ci-dessus et suivre son flux de connexion OAuth. La découverte du serveur d'autorisation est fournie par Supabase à `https://<project-ref>.supabase.co/.well-known/oauth-authorization-server/auth/v1`.
+
+Outils disponibles : `list_cards` renvoie au plus 100 cartes par appel avec sujet et progression, `get_card` consulte une carte par identifiant, et `update_card` modifie sa question (1 à 500 caractères) et sa réponse (1 à 1 000 caractères). Les suppressions et changements de sujet ou de progression ne sont pas exposés.
+
 ## Démarrer
 
 ```bash

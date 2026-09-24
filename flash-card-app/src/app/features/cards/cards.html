@@ -126,6 +126,16 @@
           </section>
 
           <section class="import-panel" aria-labelledby="import-title">
+          <h3 id="export-title">Exporter les cartes</h3>
+          <p>Téléchargez le contenu de votre collection au format JSON réutilisable dans l’import.</p>
+          <button
+            class="button button-secondary"
+            type="button"
+            (click)="exportCards()"
+            [disabled]="store.loading() || store.cards().length === 0"
+          >
+            Exporter les cartes
+          </button>
           <h3 id="import-title">Importer des cartes</h3>
           <p>Choisissez un fichier JSON contenant une liste de cartes avec une question, une réponse et, facultativement, un sujet.</p>
           <pre><code>[&#123; "question": "…", "answer": "…", "subject": "…" &#125;]</code></pre>
