@@ -2,7 +2,7 @@
   <div class="page-intro">
     <div>
       <p class="section-kicker">Votre séance</p>
-      <h1 id="page-title">Réviser aujourd’hui</h1>
+      <h1 id="page-title">{{ trainingColumn === null ? 'Réviser aujourd’hui' : 'S’entraîner sur une étape' }}</h1>
       <p>Une carte à la fois. Répondez dans votre tête, puis retournez-la.</p>
     </div>
     <a class="text-link" routerLink="/cartes">Gérer mes cartes <span aria-hidden="true">↗</span></a>
@@ -16,13 +16,20 @@
     </div>
   } @else if (!store.loaded()) {
     <p role="status">Vos cartes ne sont pas disponibles pour le moment.</p>
+  } @else if (trainingFinished()) {
+    <div class="empty-session">
+      <div class="empty-icon" aria-hidden="true">✓</div>
+      <h2 #emptyHeading tabindex="-1">Entraînement terminé</h2>
+      <p>Vous avez parcouru les cartes de l’étape {{ trainingColumn }}.</p>
+      <a class="button button-secondary" routerLink="/cartes">Voir mes cartes</a>
+    </div>
   } @else if (card(); as current) {
     <div class="session-meta" aria-live="polite">
       <span
-        ><strong>{{ store.dueCards().length }}</strong>
-        {{ store.dueCards().length === 1 ? 'carte à réviser' : 'cartes à réviser' }}</span
+        ><strong>{{ remaining() }}</strong>
+        {{ trainingColumn !== null ? (remaining() === 1 ? 'carte restante' : 'cartes restantes') : (remaining() === 1 ? 'carte à réviser' : 'cartes à réviser') }}</span
       >
-      <span>Colonne {{ current.column }} sur 7</span>
+      <span>{{ trainingColumn !== null ? 'Étape ' + trainingColumn : 'Étape ' + current.column }} sur 7</span>
     </div>
 
     <article class="study-card" aria-label="Carte de révision">
@@ -63,8 +70,11 @@
 
     @if (flipState() === 'answer') {
       <div class="review-actions" aria-label="Évaluer votre réponse">
-        <p>Aviez-vous la bonne réponse ?</p>
+        <p>{{ trainingColumn !== null ? 'Prêt à continuer ?' : 'Aviez-vous la bonne réponse ?' }}</p>
         <div class="action-row">
+          @if (trainingColumn !== null) {
+            <button #nextButton type="button" class="button button-primary" (click)="answer(true)">Carte suivante</button>
+          } @else {
           <button
             type="button"
             class="button button-secondary"
@@ -82,6 +92,7 @@
           >
             J’ai répondu juste
           </button>
+          }
         </div>
       </div>
     } @else {

@@ -1,5 +1,6 @@
 import { Component, computed, ElementRef, inject, signal, viewChild } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import {
   CardContent,
   Column,
@@ -11,7 +12,7 @@ import { FlashcardStore, ImportedCard, normalizeSubject } from '../../core/flash
 import { dueOn } from '../../core/review-rules';
 
 @Component({
-  imports: [ReactiveFormsModule],
+  imports: [ReactiveFormsModule, RouterLink],
   templateUrl: './cards.html',
   styleUrl: './cards.less',
 })
