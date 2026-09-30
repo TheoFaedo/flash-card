@@ -188,8 +188,8 @@
                   </div>
                   <span class="row-count">{{ column.cards.length }} {{ column.cards.length === 1 ? 'carte' : 'cartes' }}</span>
                 </div>
-                <div class="row-cards">
-                  @for (card of column.cards; track card.id) {
+                <div class="row-cards" [id]="'cards-step-' + column.number" #firstRowCards>
+                  @for (card of column.cards.slice(0, expandedColumns().has(column.number) ? undefined : cardsPerRow()); track card.id) {
                     <article class="mini-card">
                       <div class="mini-content">
                         <span class="mini-subject">{{ card.subject ?? 'Sans sujet' }}</span>
@@ -219,6 +219,34 @@
                     <p class="row-empty">Aucune carte</p>
                   }
                 </div>
+                @if (column.cards.length > cardsPerRow()) {
+                  @if (!expandedColumns().has(column.number)) {
+                    <div class="row-preview" aria-hidden="true">
+                      <div class="row-cards preview-cards" [style.--preview-columns]="cardsPerRow()">
+                        @for (card of column.cards.slice(cardsPerRow(), cardsPerRow() * 2); track card.id) {
+                          <article class="mini-card">
+                            <div class="mini-content">
+                              <span class="mini-subject">{{ card.subject ?? 'Sans sujet' }}</span>
+                              <h4>{{ card.question }}</h4>
+                              <p>À revoir le {{ formatDue(card) }}</p>
+                            </div>
+                          </article>
+                        }
+                      </div>
+                    </div>
+                  }
+                  <button
+                    class="button button-secondary row-toggle"
+                    type="button"
+                    [attr.aria-controls]="'cards-step-' + column.number"
+                    [attr.aria-expanded]="expandedColumns().has(column.number)"
+                    [attr.aria-label]="(expandedColumns().has(column.number) ? 'Voir moins' : column.cards.length - cardsPerRow() === 1 ? 'Voir l’autre carte' : 'Voir les ' + (column.cards.length - cardsPerRow()) + ' autres cartes') + ' de l’étape ' + column.number"
+                    (click)="toggleColumn(column.number)"
+                  >
+                    {{ expandedColumns().has(column.number) ? 'Voir moins' : column.cards.length - cardsPerRow() === 1 ? 'Voir l’autre carte' : 'Voir les ' + (column.cards.length - cardsPerRow()) + ' autres cartes' }}
+                    <span class="toggle-arrow" aria-hidden="true">{{ expandedColumns().has(column.number) ? '↑' : '↓' }}</span>
+                  </button>
+                }
               </section>
             }
           </div>

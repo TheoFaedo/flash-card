@@ -1,4 +1,4 @@
-import { Component, computed, ElementRef, inject, signal, viewChild } from '@angular/core';
+import { afterRenderEffect, Component, computed, ElementRef, inject, signal, viewChild } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import {
@@ -28,6 +28,9 @@ export class Cards {
   protected readonly importFilename = signal('');
   protected readonly promptCopyMessage = signal('');
   private readonly subjectNameInput = viewChild<ElementRef<HTMLInputElement>>('subjectNameInput');
+  private readonly firstRowCards = viewChild<ElementRef<HTMLElement>>('firstRowCards');
+  protected readonly cardsPerRow = signal(1);
+  protected readonly expandedColumns = signal<ReadonlySet<Column>>(new Set());
   protected readonly columns = computed(() =>
     REVIEW_INTERVALS.map((days, index) => ({
       number: (index + 1) as Column,
@@ -45,6 +48,37 @@ export class Cards {
     Validators.required,
     Validators.maxLength(50),
   ]);
+
+  constructor() {
+    afterRenderEffect((onCleanup) => {
+      const grid = this.firstRowCards()?.nativeElement;
+      if (!grid) return;
+
+      const updateCardsPerRow = () => {
+        const styles = getComputedStyle(grid);
+        const minWidth = parseFloat(styles.getPropertyValue('--card-min-width'));
+        const gap = parseFloat(styles.columnGap) || 0;
+        if (!minWidth || !grid.clientWidth) return;
+        this.cardsPerRow.set(Math.max(1, Math.floor((grid.clientWidth + gap) / (minWidth + gap))));
+      };
+
+      updateCardsPerRow();
+      if (typeof ResizeObserver !== 'undefined') {
+        const observer = new ResizeObserver(updateCardsPerRow);
+        observer.observe(grid);
+        onCleanup(() => observer.disconnect());
+      }
+    });
+  }
+
+  protected toggleColumn(column: Column): void {
+    this.expandedColumns.update((expanded) => {
+      const next = new Set(expanded);
+      if (next.has(column)) next.delete(column);
+      else next.add(column);
+      return next;
+    });
+  }
 
   private defaultSubject(): string {
     return this.store.subjects().includes(Subject.General) ? Subject.General : '';
