@@ -186,7 +186,8 @@
   gap: 0.75rem;
   align-items: start;
   background: #e6eef1;
-  border: 1px solid #d3e0e5;
+  border: 1px solid color-mix(in srgb, var(--stage-accent) 38%, #d3e0e5);
+  border-inline-start: 3px solid var(--stage-accent);
   border-radius: 0.85rem;
   padding: 0.7rem;
 }
@@ -205,7 +206,7 @@
   width: 2.2rem;
   height: 2.2rem;
   border-radius: 0.55rem;
-  background: #27657a;
+  background: var(--stage-accent);
   color: white;
   font-weight: 800;
 }
@@ -233,6 +234,10 @@
 .row-title h3 {
   margin: 0;
   font-size: 0.98rem;
+  color: var(--stage-accent);
+}
+.legend-stage .column-number {
+  background: linear-gradient(135deg, #25232b 0 78%, #7656a8 78%);
 }
 .row-title p {
   margin: 0;

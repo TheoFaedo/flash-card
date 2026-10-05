@@ -8,6 +8,8 @@ export enum Subject {
 
 export const DEFAULT_SUBJECTS: string[] = Object.values(Subject);
 export const REVIEW_INTERVALS = [1, 2, 3, 5, 8, 13, 21] as const;
+export const REVIEW_STAGE_NAMES = ['Starter', 'Focus', 'Flow', 'Boost', 'Pro', 'Expert', 'Légende'] as const;
+export const REVIEW_STAGE_ACCENTS = ['#26734d', '#2861a8', '#202428', '#93612e', '#687583', '#987018', '#25232b'] as const;
 export type Column = 1 | 2 | 3 | 4 | 5 | 6 | 7;
 
 export interface Flashcard {

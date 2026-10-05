@@ -1,6 +1,7 @@
 import { Component, computed, effect, ElementRef, inject, signal, viewChild } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { FlashcardStore } from '../../core/flashcard.store';
+import { REVIEW_STAGE_NAMES, REVIEW_STAGE_ACCENTS } from '../../shared/flashcard.model';
 
 @Component({
   imports: [RouterLink],
@@ -11,6 +12,8 @@ export class Review {
   protected readonly store = inject(FlashcardStore);
   private readonly route = inject(ActivatedRoute);
   protected readonly trainingColumn = this.readTrainingColumn();
+  protected readonly stageName = (column: number) => REVIEW_STAGE_NAMES[column - 1];
+  protected readonly stageAccent = (column: number) => REVIEW_STAGE_ACCENTS[column - 1];
   private readonly trainingCards = signal<ReturnType<FlashcardStore['cards']>>([]);
   private readonly trainingIndex = signal(0);
   private readonly trainingInitialized = signal(false);

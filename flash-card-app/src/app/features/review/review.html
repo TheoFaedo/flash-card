@@ -20,7 +20,7 @@
     <div class="empty-session">
       <div class="empty-icon" aria-hidden="true">✓</div>
       <h2 #emptyHeading tabindex="-1">Entraînement terminé</h2>
-      <p>Vous avez parcouru les cartes de l’étape {{ trainingColumn }}.</p>
+      <p>Vous avez parcouru les cartes de l’étape {{ trainingColumn }} · {{ stageName(trainingColumn!) }}.</p>
       <a class="button button-secondary" routerLink="/cartes">Voir mes cartes</a>
     </div>
   } @else if (card(); as current) {
@@ -29,10 +29,10 @@
         ><strong>{{ remaining() }}</strong>
         {{ trainingColumn !== null ? (remaining() === 1 ? 'carte restante' : 'cartes restantes') : (remaining() === 1 ? 'carte à réviser' : 'cartes à réviser') }}</span
       >
-      <span>{{ trainingColumn !== null ? 'Étape ' + trainingColumn : 'Étape ' + current.column }} sur 7</span>
+      <span class="stage-label" [style.--stage-accent]="stageAccent(trainingColumn ?? current.column)" [class.legend-stage]="(trainingColumn ?? current.column) === 7">Étape {{ trainingColumn ?? current.column }} · {{ stageName(trainingColumn ?? current.column) }} sur 7</span>
     </div>
 
-    <article class="study-card" aria-label="Carte de révision">
+    <article class="study-card" [style.--stage-accent]="stageAccent(current.column)" [class.legend-stage]="current.column === 7" aria-label="Carte de révision">
       <div
         class="card-flipper"
         [class.is-flipping]="flipState() === 'flipping'"

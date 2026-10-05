@@ -6,6 +6,8 @@ import {
   Column,
   Flashcard,
   REVIEW_INTERVALS,
+  REVIEW_STAGE_NAMES,
+  REVIEW_STAGE_ACCENTS,
   Subject,
 } from '../../shared/flashcard.model';
 import { FlashcardStore, ImportedCard, normalizeSubject } from '../../core/flashcard.store';
@@ -34,6 +36,8 @@ export class Cards {
   protected readonly columns = computed(() =>
     REVIEW_INTERVALS.map((days, index) => ({
       number: (index + 1) as Column,
+      name: REVIEW_STAGE_NAMES[index],
+      accent: REVIEW_STAGE_ACCENTS[index],
       days,
       cards: this.store.cards().filter((card) => card.column === index + 1),
     })),

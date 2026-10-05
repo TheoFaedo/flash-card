@@ -14,6 +14,11 @@
   color: #183344;
   font-size: 1.25rem;
 }
+.stage-label {
+  color: var(--stage-accent);
+  font-weight: 700;
+}
+.stage-label.legend-stage { color: #7656a8; }
 .study-card {
   perspective: 1200px;
 }
@@ -37,6 +42,7 @@
   min-height: min(52vh, 430px);
   padding: clamp(1.5rem, 5vw, 3rem);
   border: 1px solid #b9cdd5;
+  border-inline-start: 3px solid var(--card-accent, var(--stage-accent));
   border-radius: 1.1rem;
   background: #fff;
   box-shadow:
@@ -45,6 +51,7 @@
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
 }
+.study-card.legend-stage .card-face { --card-accent: #7656a8; }
 .card-back {
   background: #e7f0f3;
   transform: rotateY(180deg);

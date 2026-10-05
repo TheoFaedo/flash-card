@@ -174,13 +174,13 @@
         <div class="rows-scroll" tabindex="0" role="region" aria-label="Étapes de révision">
           <div class="review-rows">
             @for (column of columns(); track column.number) {
-              <section class="review-row" [attr.aria-label]="'Étape ' + column.number">
+              <section class="review-row" [style.--stage-accent]="column.accent" [class.legend-stage]="column.number === 7" [attr.aria-label]="'Étape ' + column.number + ' : ' + column.name">
                 <div class="row-heading">
                   <div class="column-number">{{ column.number }}</div>
                   <div class="row-title">
                     <div class="row-title-line">
                       <div class="row-title-copy">
-                        <h3>Étape {{ column.number }}</h3>
+                        <h3>Étape {{ column.number }} · {{ column.name }}</h3>
                         <p>{{ column.days === 1 ? 'Chaque jour' : 'Tous les ' + column.days + ' jours' }}</p>
                       </div>
                       <a class="button button-secondary train-button" [attr.aria-disabled]="column.cards.length === 0" [attr.tabindex]="column.cards.length === 0 ? -1 : null" [class.is-disabled]="column.cards.length === 0" [routerLink]="column.cards.length ? '/' : null" [queryParams]="column.cards.length ? { etape: column.number } : null">S’entraîner</a>
