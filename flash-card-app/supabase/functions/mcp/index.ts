@@ -15,6 +15,62 @@ Deno.serve(
         const server = new McpServer({ name: 'flashcard', version: '1.0.0' })
 
         server.registerTool(
+          'create_cards',
+          {
+            title: 'Créer des cartes',
+            description: 'Crée de 1 à 30 cartes pour le compte connecté. Un sujet doit déjà exister dans ce compte ; un sujet absent ou inconnu est ignoré.',
+            inputSchema: z.object({
+              cards: z.array(z.object({
+                question: z.string().trim().min(1).max(500),
+                answer: z.string().trim().min(1).max(1000),
+                subject: z.string().trim().min(1).max(50).nullable().optional(),
+              })).min(1).max(30),
+            }),
+            annotations: { destructiveHint: false, idempotentHint: false },
+          },
+          async ({ cards }) => {
+            const { data: userData, error: userError } = await supabase.auth.getUser()
+            if (userError) throw userError
+            if (!userData.user) return { content: [{ type: 'text', text: 'Utilisateur introuvable.' }], isError: true }
+
+            const { data: subjects, error: subjectsError } = await supabase.from('subjects').select('id,name')
+            if (subjectsError) throw subjectsError
+            const subjectIds = new Map(subjects.map((subject) => [subject.name, subject.id]))
+            const now = new Date()
+            const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+            const rows = cards.map((card) => ({
+              user_id: userData.user.id,
+              question: card.question,
+              answer: card.answer,
+              subject_id: card.subject ? subjectIds.get(card.subject) ?? null : null,
+              column: 1,
+              review_interval_started_on: today,
+            }))
+            const { data, error } = await supabase
+              .from('cards')
+              .insert(rows)
+              .select('id,question,answer,subject_id,column,review_interval_started_on,created_at')
+            if (error) throw error
+            const subjectNames = new Map(subjects.map((subject) => [subject.id, subject.name]))
+
+            return {
+              content: [{
+                type: 'text',
+                text: JSON.stringify(data.map((card) => ({
+                  id: card.id,
+                  question: card.question,
+                  answer: card.answer,
+                  subject: card.subject_id ? subjectNames.get(card.subject_id) ?? null : null,
+                  column: card.column,
+                  reviewIntervalStartedOn: card.review_interval_started_on,
+                  createdAt: card.created_at,
+                }))),
+              }],
+            }
+          },
+        )
+
+        server.registerTool(
           'list_cards',
           {
             title: 'Lister mes cartes',

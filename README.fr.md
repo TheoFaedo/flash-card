@@ -27,7 +27,7 @@ Les [instructions Supabase pour Google](https://supabase.com/docs/guides/auth/so
 
 ## Serveur MCP distant
 
-Le serveur MCP est une Edge Function à l'adresse `https://<project-ref>.supabase.co/functions/v1/mcp`. Il expose `list_cards`, `get_card` et `update_card`. L'authentification et les appels aux tables passent par Supabase Auth et les règles RLS existantes ; chaque assistant agit avec les droits du compte qui a donné son consentement.
+Le serveur MCP est une Edge Function à l'adresse `https://<project-ref>.supabase.co/functions/v1/mcp`. Il expose `list_cards`, `get_card`, `create_cards` et `update_card`. L'authentification et les appels aux tables passent par Supabase Auth et les règles RLS existantes ; chaque assistant agit avec les droits du compte qui a donné son consentement.
 
 Pour le déployer avec Supabase CLI (version 2.117 ou ultérieure) :
 
@@ -47,7 +47,7 @@ Dans Supabase Dashboard :
 
 L'écran `/oauth/consent` de l'application affiche le nom du client, le compte et les autorisations demandées. L'utilisateur peut accepter ou refuser ; après acceptation, les appels MCP sont isolés par les politiques RLS. La connexion utilise les fournisseurs déjà activés dans Supabase, notamment Google. Pour connecter un client compatible, lui fournir l'URL MCP ci-dessus et suivre son flux de connexion OAuth. La découverte du serveur d'autorisation est fournie par Supabase à `https://<project-ref>.supabase.co/.well-known/oauth-authorization-server/auth/v1`.
 
-Outils disponibles : `list_cards` renvoie au plus 100 cartes par appel avec sujet et progression, `get_card` consulte une carte par identifiant, et `update_card` modifie sa question (1 à 500 caractères) et sa réponse (1 à 1 000 caractères). Les suppressions et changements de sujet ou de progression ne sont pas exposés.
+Outils disponibles : `list_cards` renvoie au plus 100 cartes par appel avec sujet et progression, `get_card` consulte une carte par identifiant, `create_cards` crée de 1 à 30 cartes en un appel, et `update_card` modifie la question (1 à 500 caractères) et la réponse (1 à 1 000 caractères) d'une carte. Pour `create_cards`, chaque question doit contenir de 1 à 500 caractères et chaque réponse de 1 à 1 000 caractères ; les espaces en début et fin sont retirés. Les cartes sont créées en colonne 1 avec la date locale du jour. Un sujet existant du compte peut être indiqué ; un sujet absent ou inconnu laisse la carte sans sujet, et aucun sujet n'est créé automatiquement. Un lot invalide est rejeté entièrement. Les suppressions et changements de progression ne sont pas exposés.
 
 ## Démarrer
 
