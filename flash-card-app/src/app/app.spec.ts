@@ -13,6 +13,7 @@ describe('protected routes', () => {
     const auth = {
       user,
       whenReady: async () => {},
+      refreshSession: async () => {},
       ready: signal(true),
       error: signal(null),
       configured: true,

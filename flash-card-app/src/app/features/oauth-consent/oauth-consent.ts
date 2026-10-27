@@ -17,27 +17,58 @@ interface ConsentDetails {
       @if (error(); as message) {
         <div class="notice error" role="alert">{{ message }}</div>
       } @else if (details(); as request) {
-        <p><strong>{{ request.client.name }}</strong> souhaite accéder à votre compte flashcard.</p>
-        <p>Il pourra consulter vos cartes et modifier leurs questions et réponses. Il ne pourra pas les supprimer.</p>
+        <p>
+          <strong>{{ request.client.name }}</strong> souhaite accéder à votre compte flashcard.
+        </p>
+        <p>
+          Il pourra consulter vos cartes et modifier leurs questions et réponses. Il ne pourra pas
+          les supprimer.
+        </p>
         <p>Compte : {{ auth.user()?.email }}</p>
         <h2>Permissions demandées</h2>
         <ul>
-          @for (scope of scopes(); track scope) { <li>{{ scope }}</li> }
+          @for (scope of scopes(); track scope) {
+            <li>{{ scope }}</li>
+          }
         </ul>
         <div class="consent-actions">
-          <button class="button button-primary" type="button" [disabled]="busy()" (click)="decide(true)">Autoriser</button>
-          <button class="button" type="button" [disabled]="busy()" (click)="decide(false)">Refuser</button>
+          <button
+            class="button button-primary"
+            type="button"
+            [disabled]="busy()"
+            (click)="decide(true)"
+          >
+            Autoriser
+          </button>
+          <button class="button" type="button" [disabled]="busy()" (click)="decide(false)">
+            Refuser
+          </button>
         </div>
       } @else {
         <p>Chargement de la demande d’autorisation…</p>
       }
     </section>
   `,
-  styles: [`
-    .consent-page { max-width: 36rem; margin: 2rem auto; padding: 2rem; background: white; border-radius: 1rem; box-shadow: 0 10px 32px #18334412; }
-    .consent-page h1 { margin-top: .5rem; }
-    .consent-actions { display: flex; gap: .75rem; margin-top: 1.5rem; }
-  `],
+  styles: [
+    `
+      .consent-page {
+        max-width: 36rem;
+        margin: 2rem auto;
+        padding: 2rem;
+        background: white;
+        border-radius: 1rem;
+        box-shadow: 0 10px 32px #18334412;
+      }
+      .consent-page h1 {
+        margin-top: 0.5rem;
+      }
+      .consent-actions {
+        display: flex;
+        gap: 0.75rem;
+        margin-top: 1.5rem;
+      }
+    `,
+  ],
 })
 export class OAuthConsent {
   protected readonly auth = inject(AuthService);
@@ -46,7 +77,9 @@ export class OAuthConsent {
   readonly details = signal<ConsentDetails | null>(null);
   readonly scopes = signal<string[]>([]);
   readonly busy = signal(false);
-  private readonly authorizationId = new URLSearchParams(window.location.search).get('authorization_id');
+  private readonly authorizationId = new URLSearchParams(window.location.search).get(
+    'authorization_id',
+  );
 
   constructor() {
     effect(() => {
@@ -67,8 +100,12 @@ export class OAuthConsent {
     this.busy.set(true);
     this.error.set(null);
     const result = approve
-      ? await this.auth.client.auth.oauth.approveAuthorization(this.authorizationId, { skipBrowserRedirect: true })
-      : await this.auth.client.auth.oauth.denyAuthorization(this.authorizationId, { skipBrowserRedirect: true });
+      ? await this.auth.client.auth.oauth.approveAuthorization(this.authorizationId, {
+          skipBrowserRedirect: true,
+        })
+      : await this.auth.client.auth.oauth.denyAuthorization(this.authorizationId, {
+          skipBrowserRedirect: true,
+        });
     if (result.error || !result.data?.redirect_url) {
       this.error.set('Impossible de traiter cette demande. Réessayez.');
       this.busy.set(false);
@@ -79,7 +116,9 @@ export class OAuthConsent {
 
   private async loadDetails(): Promise<void> {
     if (!this.authorizationId || !this.auth.client || this.details()) return;
-    const { data, error } = await this.auth.client.auth.oauth.getAuthorizationDetails(this.authorizationId);
+    const { data, error } = await this.auth.client.auth.oauth.getAuthorizationDetails(
+      this.authorizationId,
+    );
     if (error || !data) {
       this.error.set('Impossible de charger les détails de cette demande.');
       return;

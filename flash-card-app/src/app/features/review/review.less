@@ -18,9 +18,35 @@
   color: var(--stage-accent);
   font-weight: 700;
 }
-.stage-label.legend-stage { color: #7656a8; }
+.stage-label.legend-stage {
+  color: #7656a8;
+}
 .study-card {
   perspective: 1200px;
+  border-radius: 1.1rem;
+}
+.report-control {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+.report-checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 3rem;
+  color: #183344;
+  font-weight: 700;
+  cursor: pointer;
+}
+.report-checkbox input {
+  width: 1.15rem;
+  height: 1.15rem;
+  accent-color: #a15c00;
+}
+.report-checkbox input:disabled {
+  cursor: not-allowed;
 }
 .card-flipper {
   display: grid;
@@ -51,7 +77,9 @@
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
 }
-.study-card.legend-stage .card-face { --card-accent: #7656a8; }
+.study-card.legend-stage .card-face {
+  --card-accent: #7656a8;
+}
 .card-back {
   background: #e7f0f3;
   transform: rotateY(180deg);
@@ -153,4 +181,16 @@
   .card-flipper.is-flipping {
     transition: none;
   }
+}
+
+.reported {
+  outline: 3px solid #a15c00;
+}
+.reported-badge {
+  display: inline-block;
+  padding: 0.2rem 0.5rem;
+  background: #fff0cf;
+  color: #704000;
+  border-radius: 0.3rem;
+  font-weight: 700;
 }

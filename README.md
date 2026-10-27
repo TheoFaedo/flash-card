@@ -73,3 +73,13 @@ The legacy `localStorage` keys (`flashcard.cards.v1` and `flashcard.data.v2`) ar
 After applying the migration, sign in with two distinct Google accounts. For each account, create a card and a subject, refresh the page, and verify that only that account's data is visible. Review, edit, and delete a card; remove an assigned subject and verify that its card becomes “No subject.” Verify that signing out immediately clears the display and that `/` and `/cartes` redirect to sign-in.
 
 To verify RLS directly, use two API sessions with their respective access tokens: a `select`, `update`, or `delete` request targeting a card or subject ID belonging to the other account must return no rows; inserting a card with the other account's `subject_id` must fail on the composite foreign key. Repeat without a token: access to both tables must be denied.
+
+## Cards needing corrections and filters
+
+During review and training, the “À modifier” toggle flags the card on either face. An amber outline and a text badge also appear in the collection and its previews. Reporting waits for server confirmation and preserves the current card, face and review progress. If saving fails, the card remains visible so you can retry.
+
+The collection’s “Toutes / À modifier” controls filter before stage grouping and collapsed rows. The count includes all reported cards. Filters stay in memory while the page is open; empty results offer a reset. Training always includes every card in the selected stage. Reports can be cancelled in the collection. Saving a correction automatically clears the report; cancelling the editor preserves it.
+
+MCP card responses include `reported`. `list_cards` accepts optional `reported: true` or `false`, applied before pagination; omitting it returns all cards. `update_card` clears the report atomically with the correction. Existing RLS policies isolate accounts. JSON import/export is unchanged; imported cards start unreported.
+
+Deployment: first apply `flash-card-app/supabase/migrations/20261027000000_reported_cards.sql` (`supabase db push` from `flash-card-app`), then deploy the MCP function and application. The migration adds `cards.reported boolean not null default false` for existing and future cards.

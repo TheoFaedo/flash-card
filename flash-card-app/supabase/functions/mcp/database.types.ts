@@ -4,6 +4,7 @@ export type Database = {
       cards: {
         Row: {
           id: string;
+          reported: boolean;
           question: string;
           answer: string;
           subject_id: string | null;

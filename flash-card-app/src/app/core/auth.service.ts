@@ -61,7 +61,10 @@ export class AuthService {
     const { error } = await this.client.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: new URL(`connexion?returnTo=${encodeURIComponent(returnTo)}`, document.baseURI).toString(),
+        redirectTo: new URL(
+          `connexion?returnTo=${encodeURIComponent(returnTo)}`,
+          document.baseURI,
+        ).toString(),
         queryParams: { prompt: 'select_account' },
       },
     });

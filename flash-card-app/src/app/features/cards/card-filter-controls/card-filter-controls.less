@@ -1,0 +1,43 @@
+.filter-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  color: #183344;
+  font-weight: 700;
+}
+.filter-select {
+  min-width: 9rem;
+  min-height: 2.75rem;
+  padding: 0.55rem 2rem 0.55rem 0.75rem;
+  border: 1px solid #9cb6c2;
+  border-radius: 0.6rem;
+  background: #fff;
+  color: #215b70;
+  font: inherit;
+  cursor: pointer;
+}
+.filter-select:focus-visible {
+  outline: 3px solid #8ab8c8;
+  outline-offset: 2px;
+}
+
+@media (max-width: 560px) {
+  .filter-controls {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    gap: 0.5rem 0.75rem;
+  }
+
+  .filter-select {
+    width: 100%;
+    min-width: 0;
+    min-height: 3rem;
+  }
+
+  .filter-controls [role='status'] {
+    grid-column: 1 / -1;
+  }
+}

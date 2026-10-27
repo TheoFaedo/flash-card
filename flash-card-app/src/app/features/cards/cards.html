@@ -29,139 +29,167 @@
             <h2 id="editor-title">{{ editingId() ? 'Modifier la carte' : 'Nouvelle carte' }}</h2>
             <p>Une nouvelle carte apparaîtra en révision demain.</p>
             <form [formGroup]="form" (ngSubmit)="submit()">
-          <div class="field">
-            <label for="question">Question</label>
-            <textarea
-              id="question"
-              formControlName="question"
-              rows="4"
-              maxlength="500"
-              [attr.aria-invalid]="form.controls.question.invalid && form.controls.question.touched"
-            ></textarea>
-            @if (form.controls.question.invalid && form.controls.question.touched) {
-              <span class="field-error">Saisissez une question.</span>
-            }
-          </div>
-          <div class="field">
-            <label for="answer">Réponse</label>
-            <textarea
-              id="answer"
-              formControlName="answer"
-              rows="4"
-              maxlength="1000"
-              [attr.aria-invalid]="form.controls.answer.invalid && form.controls.answer.touched"
-            ></textarea>
-            @if (form.controls.answer.invalid && form.controls.answer.touched) {
-              <span class="field-error">Saisissez une réponse.</span>
-            }
-          </div>
-          <div class="field">
-            <label for="subject">Sujet</label>
-            <select id="subject" formControlName="subject">
-              <option value="">Aucun sujet</option>
-              @for (subject of store.subjects(); track subject) {
-                <option [value]="subject">{{ subject }}</option>
-              }
-            </select>
-          </div>
-          <div class="form-actions">
-            <button class="button button-primary" type="submit" [disabled]="store.saving()">
-              {{
-                store.saving()
-                  ? 'Enregistrement…'
-                  : editingId()
-                    ? 'Enregistrer'
-                    : 'Ajouter la carte'
-              }}
-            </button>
-            @if (editingId()) {
-              <button class="button button-quiet" type="button" (click)="cancelEdit()">
-                Annuler
-              </button>
-            }
-          </div>
+              <div class="field">
+                <label for="question">Question</label>
+                <textarea
+                  id="question"
+                  formControlName="question"
+                  rows="4"
+                  maxlength="500"
+                  [attr.aria-invalid]="
+                    form.controls.question.invalid && form.controls.question.touched
+                  "
+                ></textarea>
+                @if (form.controls.question.invalid && form.controls.question.touched) {
+                  <span class="field-error">Saisissez une question.</span>
+                }
+              </div>
+              <div class="field">
+                <label for="answer">Réponse</label>
+                <textarea
+                  id="answer"
+                  formControlName="answer"
+                  rows="4"
+                  maxlength="1000"
+                  [attr.aria-invalid]="form.controls.answer.invalid && form.controls.answer.touched"
+                ></textarea>
+                @if (form.controls.answer.invalid && form.controls.answer.touched) {
+                  <span class="field-error">Saisissez une réponse.</span>
+                }
+              </div>
+              <div class="field">
+                <label for="subject">Sujet</label>
+                <select id="subject" formControlName="subject">
+                  <option value="">Aucun sujet</option>
+                  @for (subject of store.subjects(); track subject) {
+                    <option [value]="subject">{{ subject }}</option>
+                  }
+                </select>
+              </div>
+              <div class="form-actions">
+                <button class="button button-primary" type="submit" [disabled]="store.saving()">
+                  {{
+                    store.saving()
+                      ? 'Enregistrement…'
+                      : editingId()
+                        ? 'Enregistrer'
+                        : 'Ajouter la carte'
+                  }}
+                </button>
+                @if (editingId()) {
+                  <button
+                    class="button button-quiet"
+                    type="button"
+                    [disabled]="store.saving()"
+                    (click)="cancelEdit()"
+                  >
+                    Annuler
+                  </button>
+                }
+              </div>
             </form>
           </section>
 
           <section class="subjects-panel" aria-labelledby="subjects-title">
-          <h3 id="subjects-title">Gérer les sujets</h3>
-          <form (submit)="addSubject(); $event.preventDefault()">
-            <div class="field">
-              <label for="subject-name">Nouveau sujet</label>
-              <input
-                #subjectNameInput
-                id="subject-name"
-                type="text"
-                [formControl]="subjectName"
-                maxlength="50"
-                [attr.aria-invalid]="subjectNameError() !== null"
-                [attr.aria-describedby]="subjectNameError() ? 'subject-name-error' : null"
-                (input)="subjectNameError.set(null)"
-              />
-              @if (subjectNameError(); as error) {
-                <span id="subject-name-error" class="field-error" role="alert">{{ error }}</span>
+            <h3 id="subjects-title">Gérer les sujets</h3>
+            <form (submit)="addSubject(); $event.preventDefault()">
+              <div class="field">
+                <label for="subject-name">Nouveau sujet</label>
+                <input
+                  #subjectNameInput
+                  id="subject-name"
+                  type="text"
+                  [formControl]="subjectName"
+                  maxlength="50"
+                  [attr.aria-invalid]="subjectNameError() !== null"
+                  [attr.aria-describedby]="subjectNameError() ? 'subject-name-error' : null"
+                  (input)="subjectNameError.set(null)"
+                />
+                @if (subjectNameError(); as error) {
+                  <span id="subject-name-error" class="field-error" role="alert">{{ error }}</span>
+                }
+              </div>
+              <button class="button button-secondary" type="submit" [disabled]="store.saving()">
+                Ajouter le sujet
+              </button>
+            </form>
+            <ul class="subject-list" aria-label="Sujets disponibles">
+              @for (subject of store.subjects(); track subject) {
+                <li>
+                  <span>{{ subject }}</span>
+                  <button
+                    type="button"
+                    (click)="removeSubject(subject)"
+                    [disabled]="store.saving()"
+                    [attr.aria-label]="'Retirer le sujet ' + subject"
+                  >
+                    Retirer
+                  </button>
+                </li>
+              } @empty {
+                <li class="subject-empty">Aucun sujet disponible</li>
               }
-            </div>
-            <button class="button button-secondary" type="submit" [disabled]="store.saving()">
-              Ajouter le sujet
-            </button>
-          </form>
-          <ul class="subject-list" aria-label="Sujets disponibles">
-            @for (subject of store.subjects(); track subject) {
-              <li>
-                <span>{{ subject }}</span>
-                <button
-                  type="button"
-                  (click)="removeSubject(subject)"
-                  [disabled]="store.saving()"
-                  [attr.aria-label]="'Retirer le sujet ' + subject"
-                >
-                  Retirer
-                </button>
-              </li>
-            } @empty {
-              <li class="subject-empty">Aucun sujet disponible</li>
-            }
-          </ul>
+            </ul>
           </section>
 
           <section class="import-panel" aria-labelledby="import-title">
-          <h3 id="export-title">Exporter les cartes</h3>
-          <p>Téléchargez le contenu de votre collection au format JSON réutilisable dans l’import.</p>
-          <button
-            class="button button-secondary"
-            type="button"
-            (click)="exportCards()"
-            [disabled]="store.loading() || store.cards().length === 0"
-          >
-            Exporter les cartes
-          </button>
-          <h3 id="import-title">Importer des cartes</h3>
-          <p>Choisissez un fichier JSON contenant une liste de cartes avec une question, une réponse et, facultativement, un sujet.</p>
-          <pre><code>[&#123; "question": "…", "answer": "…", "subject": "…" &#125;]</code></pre>
-          <p>Besoin de générer le fichier à partir de documents ? Copiez ce modèle de prompt, complétez les paramètres et collez vos sources dans votre agent IA.</p>
-          <button class="button button-secondary" type="button" (click)="copyImportPrompt()">
-            Copier le prompt avec exemples
-          </button>
-          @if (promptCopyMessage(); as message) {
-            <p role="status" aria-live="polite">{{ message }}</p>
-          }
-          <div class="field">
-            <label for="cards-json">Fichier JSON</label>
-            <input id="cards-json" type="file" accept=".json,application/json" (change)="readImport($event)" />
-          </div>
-          @if (importError(); as error) {
-            <p class="field-error" role="alert">{{ error }}</p>
-          }
-          @if (importCards().length) {
-            <p role="status">{{ importFilename() }} : {{ importCards().length }} {{ importCards().length === 1 ? 'carte prête' : 'cartes prêtes' }} à importer.</p>
-            <button class="button button-primary" type="button" (click)="confirmImport()" [disabled]="store.saving()">
-              {{ store.saving() ? 'Importation…' : 'Importer les cartes' }}
+            <h3 id="export-title">Exporter les cartes</h3>
+            <p>
+              Téléchargez le contenu de votre collection au format JSON réutilisable dans l’import.
+            </p>
+            <button
+              class="button button-secondary"
+              type="button"
+              (click)="exportCards()"
+              [disabled]="store.loading() || store.cards().length === 0"
+            >
+              Exporter les cartes
             </button>
-          }
-          @if (importMessage(); as message) {
-            <p role="status">{{ message }}</p>
-          }
+            <h3 id="import-title">Importer des cartes</h3>
+            <p>
+              Choisissez un fichier JSON contenant une liste de cartes avec une question, une
+              réponse et, facultativement, un sujet.
+            </p>
+            <pre><code>[&#123; "question": "…", "answer": "…", "subject": "…" &#125;]</code></pre>
+            <p>
+              Besoin de générer le fichier à partir de documents ? Copiez ce modèle de prompt,
+              complétez les paramètres et collez vos sources dans votre agent IA.
+            </p>
+            <button class="button button-secondary" type="button" (click)="copyImportPrompt()">
+              Copier le prompt avec exemples
+            </button>
+            @if (promptCopyMessage(); as message) {
+              <p role="status" aria-live="polite">{{ message }}</p>
+            }
+            <div class="field">
+              <label for="cards-json">Fichier JSON</label>
+              <input
+                id="cards-json"
+                type="file"
+                accept=".json,application/json"
+                (change)="readImport($event)"
+              />
+            </div>
+            @if (importError(); as error) {
+              <p class="field-error" role="alert">{{ error }}</p>
+            }
+            @if (importCards().length) {
+              <p role="status">
+                {{ importFilename() }} : {{ importCards().length }}
+                {{ importCards().length === 1 ? 'carte prête' : 'cartes prêtes' }} à importer.
+              </p>
+              <button
+                class="button button-primary"
+                type="button"
+                (click)="confirmImport()"
+                [disabled]="store.saving()"
+              >
+                {{ store.saving() ? 'Importation…' : 'Importer les cartes' }}
+              </button>
+            }
+            @if (importMessage(); as message) {
+              <p role="status">{{ message }}</p>
+            }
           </section>
         </div>
       </section>
@@ -171,32 +199,78 @@
           <h2 id="columns-title">Révisions par étape</h2>
           <p>Chaque ligne regroupe les cartes de la même étape.</p>
         </div>
+        <app-card-filter-controls [(filters)]="filters" [reportedCount]="reportedCount()" />
+        @if (filteredCards().length === 0 && store.cards().length > 0) {
+          <p role="status">Aucune carte ne correspond aux filtres.</p>
+          <button
+            class="button button-secondary reset-filters"
+            type="button"
+            (click)="resetFilters()"
+          >
+            Réinitialiser les filtres
+          </button>
+        }
         <div class="rows-scroll" tabindex="0" role="region" aria-label="Étapes de révision">
           <div class="review-rows">
             @for (column of columns(); track column.number) {
-              <section class="review-row" [style.--stage-accent]="column.accent" [class.legend-stage]="column.number === 7" [attr.aria-label]="'Étape ' + column.number + ' : ' + column.name">
+              <section
+                class="review-row"
+                [style.--stage-accent]="column.accent"
+                [class.legend-stage]="column.number === 7"
+                [attr.aria-label]="'Étape ' + column.number + ' : ' + column.name"
+              >
                 <div class="row-heading">
                   <div class="column-number">{{ column.number }}</div>
                   <div class="row-title">
                     <div class="row-title-line">
                       <div class="row-title-copy">
                         <h3>Étape {{ column.number }} · {{ column.name }}</h3>
-                        <p>{{ column.days === 1 ? 'Chaque jour' : 'Tous les ' + column.days + ' jours' }}</p>
+                        <p>
+                          {{
+                            column.days === 1 ? 'Chaque jour' : 'Tous les ' + column.days + ' jours'
+                          }}
+                        </p>
                       </div>
-                      <a class="button button-secondary train-button" [attr.aria-disabled]="column.cards.length === 0" [attr.tabindex]="column.cards.length === 0 ? -1 : null" [class.is-disabled]="column.cards.length === 0" [routerLink]="column.cards.length ? '/' : null" [queryParams]="column.cards.length ? { etape: column.number } : null">S’entraîner</a>
+                      <a
+                        class="button button-secondary train-button"
+                        [attr.aria-disabled]="column.total === 0"
+                        [attr.tabindex]="column.total === 0 ? -1 : null"
+                        [class.is-disabled]="column.total === 0"
+                        [routerLink]="column.total ? '/' : null"
+                        [queryParams]="column.total ? { etape: column.number } : null"
+                        >S’entraîner</a
+                      >
                     </div>
                   </div>
-                  <span class="row-count">{{ column.cards.length }} {{ column.cards.length === 1 ? 'carte' : 'cartes' }}</span>
+                  <span class="row-count"
+                    >{{ column.cards.length }}
+                    {{ column.cards.length === 1 ? 'carte' : 'cartes' }}</span
+                  >
                 </div>
                 <div class="row-cards" [id]="'cards-step-' + column.number" #firstRowCards>
-                  @for (card of column.cards.slice(0, expandedColumns().has(column.number) ? undefined : cardsPerRow()); track card.id) {
-                    <article class="mini-card">
+                  @for (card of visibleCards(column); track card.id) {
+                    <article class="mini-card" [class.reported]="card.reported">
                       <div class="mini-content">
-                        <span class="mini-subject">{{ card.subject ?? 'Sans sujet' }}</span>
+                        <div class="mini-meta">
+                          <span class="mini-subject">{{ card.subject ?? 'Sans sujet' }}</span>
+                          @if (card.reported) {
+                            <span class="reported-badge">À modifier</span>
+                          }
+                        </div>
                         <h4>{{ card.question }}</h4>
                         <p>À revoir le {{ formatDue(card) }}</p>
                       </div>
                       <div class="mini-actions">
+                        @if (card.reported) {
+                          <button
+                            type="button"
+                            [disabled]="store.saving()"
+                            (click)="store.setReported(card.id, false)"
+                            [attr.aria-label]="'Annuler le signalement : ' + card.question"
+                          >
+                            Annuler le signalement
+                          </button>
+                        }
                         <button
                           type="button"
                           (click)="startEdit(card)"
@@ -219,14 +293,22 @@
                     <p class="row-empty">Aucune carte</p>
                   }
                 </div>
-                @if (column.cards.length > cardsPerRow()) {
-                  @if (!expandedColumns().has(column.number)) {
+                @if (hasOverflowCards(column)) {
+                  @if (!isColumnExpanded(column.number)) {
                     <div class="row-preview" aria-hidden="true">
-                      <div class="row-cards preview-cards" [style.--preview-columns]="cardsPerRow()">
-                        @for (card of column.cards.slice(cardsPerRow(), cardsPerRow() * 2); track card.id) {
-                          <article class="mini-card">
+                      <div
+                        class="row-cards preview-cards"
+                        [style.--preview-columns]="cardsPerRow()"
+                      >
+                        @for (card of previewCards(column); track card.id) {
+                          <article class="mini-card" [class.reported]="card.reported">
                             <div class="mini-content">
-                              <span class="mini-subject">{{ card.subject ?? 'Sans sujet' }}</span>
+                              <div class="mini-meta">
+                                <span class="mini-subject">{{ card.subject ?? 'Sans sujet' }}</span>
+                                @if (card.reported) {
+                                  <span class="reported-badge">À modifier</span>
+                                }
+                              </div>
                               <h4>{{ card.question }}</h4>
                               <p>À revoir le {{ formatDue(card) }}</p>
                             </div>
@@ -239,12 +321,14 @@
                     class="button button-secondary row-toggle"
                     type="button"
                     [attr.aria-controls]="'cards-step-' + column.number"
-                    [attr.aria-expanded]="expandedColumns().has(column.number)"
-                    [attr.aria-label]="(expandedColumns().has(column.number) ? 'Voir moins' : column.cards.length - cardsPerRow() === 1 ? 'Voir l’autre carte' : 'Voir les ' + (column.cards.length - cardsPerRow()) + ' autres cartes') + ' de l’étape ' + column.number"
+                    [attr.aria-expanded]="isColumnExpanded(column.number)"
+                    [attr.aria-label]="rowToggleAccessibleLabel(column)"
                     (click)="toggleColumn(column.number)"
                   >
-                    {{ expandedColumns().has(column.number) ? 'Voir moins' : column.cards.length - cardsPerRow() === 1 ? 'Voir l’autre carte' : 'Voir les ' + (column.cards.length - cardsPerRow()) + ' autres cartes' }}
-                    <span class="toggle-arrow" aria-hidden="true">{{ expandedColumns().has(column.number) ? '↑' : '↓' }}</span>
+                    {{ rowToggleLabel(column) }}
+                    <span class="toggle-arrow" aria-hidden="true">{{
+                      rowToggleIcon(column.number)
+                    }}</span>
                   </button>
                 }
               </section>

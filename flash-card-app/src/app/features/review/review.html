@@ -2,7 +2,9 @@
   <div class="page-intro">
     <div>
       <p class="section-kicker">Votre séance</p>
-      <h1 id="page-title">{{ trainingColumn === null ? 'Réviser aujourd’hui' : 'S’entraîner sur une étape' }}</h1>
+      <h1 id="page-title">
+        {{ trainingColumn === null ? 'Réviser aujourd’hui' : 'S’entraîner sur une étape' }}
+      </h1>
       <p>Une carte à la fois. Répondez dans votre tête, puis retournez-la.</p>
     </div>
     <a class="text-link" routerLink="/cartes">Gérer mes cartes <span aria-hidden="true">↗</span></a>
@@ -10,29 +12,59 @@
 
   @if (store.loading()) {
     <p role="status">Chargement de votre séance…</p>
-  } @else if (store.error(); as error) {
+  }
+  @if (store.error(); as error) {
     <div class="notice error" role="alert">
       {{ error }} <button type="button" (click)="store.reload()">Réessayer</button>
     </div>
+  }
+  @if (store.loading()) {
   } @else if (!store.loaded()) {
     <p role="status">Vos cartes ne sont pas disponibles pour le moment.</p>
   } @else if (trainingFinished()) {
     <div class="empty-session">
       <div class="empty-icon" aria-hidden="true">✓</div>
       <h2 #emptyHeading tabindex="-1">Entraînement terminé</h2>
-      <p>Vous avez parcouru les cartes de l’étape {{ trainingColumn }} · {{ stageName(trainingColumn!) }}.</p>
+      <p>
+        Vous avez parcouru les cartes de l’étape {{ trainingColumn }} ·
+        {{ stageName(trainingColumn!) }}.
+      </p>
       <a class="button button-secondary" routerLink="/cartes">Voir mes cartes</a>
     </div>
   } @else if (card(); as current) {
     <div class="session-meta" aria-live="polite">
       <span
-        ><strong>{{ remaining() }}</strong>
-        {{ trainingColumn !== null ? (remaining() === 1 ? 'carte restante' : 'cartes restantes') : (remaining() === 1 ? 'carte à réviser' : 'cartes à réviser') }}</span
+        ><strong>{{ remaining() }}</strong> {{ remainingLabel() }}</span
       >
-      <span class="stage-label" [style.--stage-accent]="stageAccent(trainingColumn ?? current.column)" [class.legend-stage]="(trainingColumn ?? current.column) === 7">Étape {{ trainingColumn ?? current.column }} · {{ stageName(trainingColumn ?? current.column) }} sur 7</span>
+      <span
+        class="stage-label"
+        [style.--stage-accent]="stageAccent(sessionStageColumn(current.column))"
+        [class.legend-stage]="isLegendSessionStage(current.column)"
+        >Étape {{ sessionStageColumn(current.column) }} ·
+        {{ stageName(sessionStageColumn(current.column)) }} sur 7</span
+      >
     </div>
 
-    <article class="study-card" [style.--stage-accent]="stageAccent(current.column)" [class.legend-stage]="current.column === 7" aria-label="Carte de révision">
+    <div class="report-control">
+      <label class="report-checkbox">
+        <input
+          type="checkbox"
+          [disabled]="store.saving() || flipState() === 'flipping'"
+          [checked]="current.reported"
+          (change)="updateReported($event)"
+        />
+        À modifier
+      </label>
+      @if (current.reported) {
+        <span class="reported-badge" aria-hidden="true">À modifier</span>
+      }
+    </div>
+    <article
+      class="study-card"
+      [style.--stage-accent]="stageAccent(current.column)"
+      [class.legend-stage]="current.column === 7"
+      aria-label="Carte de révision"
+    >
       <div
         class="card-flipper"
         [class.is-flipping]="flipState() === 'flipping'"
@@ -40,7 +72,11 @@
         (transitionend)="finishFlip($event)"
         (transitioncancel)="finishFlip($event)"
       >
-        <div class="card-face card-front" [attr.aria-hidden]="flipState() === 'answer'">
+        <div
+          class="card-face card-front"
+          [class.reported]="current.reported"
+          [attr.aria-hidden]="flipState() === 'answer'"
+        >
           <div class="card-topline">
             <span>{{ current.subject ?? 'Sans sujet' }}</span
             ><span>Question</span>
@@ -52,7 +88,11 @@
             <span>flashcard</span><span>{{ current.column }} / 7</span>
           </div>
         </div>
-        <div class="card-face card-back" [attr.aria-hidden]="flipState() !== 'answer'">
+        <div
+          class="card-face card-back"
+          [class.reported]="current.reported"
+          [attr.aria-hidden]="flipState() !== 'answer'"
+        >
           <div class="card-topline">
             <span>{{ current.subject ?? 'Sans sujet' }}</span
             ><span>Réponse</span>
@@ -70,28 +110,38 @@
 
     @if (flipState() === 'answer') {
       <div class="review-actions" aria-label="Évaluer votre réponse">
-        <p>{{ trainingColumn !== null ? 'Prêt à continuer ?' : 'Aviez-vous la bonne réponse ?' }}</p>
+        <p>
+          {{ trainingColumn !== null ? 'Prêt à continuer ?' : 'Aviez-vous la bonne réponse ?' }}
+        </p>
         <div class="action-row">
           @if (trainingColumn !== null) {
-            <button #nextButton type="button" class="button button-primary" (click)="answer(true)">Carte suivante</button>
+            <button
+              #nextButton
+              [disabled]="store.saving()"
+              type="button"
+              class="button button-primary"
+              (click)="answer(true)"
+            >
+              Carte suivante
+            </button>
           } @else {
-          <button
-            type="button"
-            class="button button-secondary"
-            [disabled]="store.saving()"
-            (click)="answer(false)"
-          >
-            Je me suis trompé
-          </button>
-          <button
-            #correctButton
-            type="button"
-            class="button button-primary"
-            [disabled]="store.saving()"
-            (click)="answer(true)"
-          >
-            J’ai répondu juste
-          </button>
+            <button
+              type="button"
+              class="button button-secondary"
+              [disabled]="store.saving()"
+              (click)="answer(false)"
+            >
+              Je me suis trompé
+            </button>
+            <button
+              #correctButton
+              type="button"
+              class="button button-primary"
+              [disabled]="store.saving()"
+              (click)="answer(true)"
+            >
+              J’ai répondu juste
+            </button>
           }
         </div>
       </div>
@@ -99,6 +149,7 @@
       <div class="review-actions">
         <button
           #revealButton
+          [disabled]="store.saving()"
           type="button"
           class="button button-primary"
           [attr.aria-disabled]="flipState() === 'flipping'"

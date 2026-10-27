@@ -3,7 +3,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { vi } from 'vitest';
 import { FlashcardStore } from '../../core/flashcard.store';
-import { Flashcard } from '../../shared/flashcard.model';
+import { Flashcard } from '../../shared/models/flashcard.model';
 import { Cards } from './cards';
 
 describe('Cards', () => {
@@ -31,11 +31,15 @@ describe('Cards', () => {
       question: `Question ${id}`,
       answer: `Réponse ${id}`,
       subject: null,
+      reported: false,
       reviewIntervalStartedOn: '2026-09-01',
     };
   }
 
-  async function createPage(cards: Flashcard[], add = vi.fn()): Promise<{
+  async function createPage(
+    cards: Flashcard[],
+    add = vi.fn(),
+  ): Promise<{
     fixture: ComponentFixture<Cards>;
     root: HTMLElement;
   }> {
@@ -92,10 +96,75 @@ describe('Cards', () => {
     expect((root.querySelector('#question') as HTMLTextAreaElement).value).toBe('');
   });
 
+  it('filters before grouping and collapsing, counts all reports and resets empty filters', async () => {
+    const { fixture, root } = await createPage([
+      card('1', 1),
+      { ...card('2', 1), reported: true },
+      { ...card('3', 2), reported: true },
+      card('4', 1),
+    ]);
+    setGridWidth(root, fixture, 300);
+    const controls = root.querySelector('app-card-filter-controls')!;
+    expect(controls.textContent).toContain('2 cartes à modifier');
+    const buttons = controls.querySelectorAll<HTMLButtonElement>('button');
+    buttons[1].click();
+    fixture.detectChanges();
+    expect(buttons[1].getAttribute('aria-pressed')).toBe('true');
+    expect(Array.from(root.querySelectorAll('.row-cards h4'), (el) => el.textContent)).toEqual([
+      'Question 2',
+      'Question 3',
+    ]);
+    expect(root.querySelector('.row-preview')).toBeNull();
+    expect(root.querySelector('.row-toggle')).toBeNull();
+    expect(root.querySelector('.train-button')?.getAttribute('href')).toContain('etape=1');
+    buttons[0].click();
+    fixture.detectChanges();
+    expect(root.querySelector('#cards-step-1 h4')?.textContent).toBe('Question 1');
+  });
+
+  it('keeps reports when cancelling an edit and highlights collapsed previews', async () => {
+    const { fixture, root } = await createPage([
+      { ...card('1', 1), reported: true },
+      { ...card('2', 1), reported: true },
+    ]);
+    expect(
+      root.querySelector('.row-preview .mini-card.reported .reported-badge')?.textContent,
+    ).toContain('À modifier');
+    root
+      .querySelector<HTMLButtonElement>('.mini-actions button[aria-label="Modifier : Question 1"]')!
+      .click();
+    fixture.detectChanges();
+    expect(root.querySelector('#editor-title')?.textContent).toContain('Modifier');
+    Array.from(root.querySelectorAll<HTMLButtonElement>('.form-actions button'))
+      .find((button) => button.textContent?.includes('Annuler'))!
+      .click();
+    fixture.detectChanges();
+    expect(root.querySelector('#editor-title')?.textContent).toContain('Nouvelle carte');
+    expect(root.querySelector('#cards-step-1 .reported-badge')?.textContent).toContain(
+      'À modifier',
+    );
+  });
+
+  it('offers a reset when the reported filter has no matches', async () => {
+    const { fixture, root } = await createPage([card('1', 1)]);
+    root.querySelectorAll<HTMLButtonElement>('app-card-filter-controls button')[1].click();
+    fixture.detectChanges();
+    expect(root.textContent).toContain('Aucune carte ne correspond aux filtres');
+    const reset = Array.from(root.querySelectorAll<HTMLButtonElement>('button')).find((button) =>
+      button.textContent?.includes('Réinitialiser'),
+    )!;
+    reset.click();
+    fixture.detectChanges();
+    expect(root.querySelector('#cards-step-1 h4')?.textContent).toBe('Question 1');
+  });
+
   it('shows a toggle only for stages that overflow the first row', async () => {
     const { fixture, root } = await createPage([
-      card('1', 1), card('2', 1), card('3', 1),
-      card('4', 2), card('5', 2),
+      card('1', 1),
+      card('2', 1),
+      card('3', 1),
+      card('4', 2),
+      card('5', 2),
     ]);
     setGridWidth(root, fixture, 500); // Two cards fit per row.
 
@@ -116,8 +185,12 @@ describe('Cards', () => {
 
   it('opens and closes stages independently while keeping card actions', async () => {
     const { fixture, root } = await createPage([
-      card('1', 1), card('2', 1), card('3', 1),
-      card('4', 2), card('5', 2), card('6', 2),
+      card('1', 1),
+      card('2', 1),
+      card('3', 1),
+      card('4', 2),
+      card('5', 2),
+      card('6', 2),
     ]);
     setGridWidth(root, fixture, 500);
     const rows = root.querySelectorAll<HTMLElement>('.review-row');
@@ -143,29 +216,43 @@ describe('Cards', () => {
 
   it('previews only the cards on the next line', async () => {
     const { fixture, root } = await createPage([
-      card('1', 1), card('2', 1), card('3', 1), card('4', 1), card('5', 1),
+      card('1', 1),
+      card('2', 1),
+      card('3', 1),
+      card('4', 1),
+      card('5', 1),
     ]);
     setGridWidth(root, fixture, 500);
     const row = root.querySelector<HTMLElement>('.review-row')!;
-    const previewQuestions = Array.from(row.querySelectorAll('.row-preview h4'), (heading) => heading.textContent);
+    const previewQuestions = Array.from(
+      row.querySelectorAll('.row-preview h4'),
+      (heading) => heading.textContent,
+    );
     expect(previewQuestions).toEqual(['Question 3', 'Question 4']);
     expect(row.querySelector('.row-toggle')?.textContent).toContain('Voir les 3 autres cartes');
   });
 
   it('recalculates the first row when the grid changes width', async () => {
     const { fixture, root } = await createPage([
-      card('1', 1), card('2', 1), card('3', 1), card('4', 1),
+      card('1', 1),
+      card('2', 1),
+      card('3', 1),
+      card('4', 1),
     ]);
     const row = root.querySelector<HTMLElement>('.review-row')!;
     setGridWidth(root, fixture, 700);
     expect(row.querySelectorAll('#cards-step-1 .mini-card')).toHaveLength(3);
     expect(row.querySelectorAll('.row-preview .mini-card')).toHaveLength(1);
-    expect(row.querySelector<HTMLElement>('.preview-cards')?.style.getPropertyValue('--preview-columns')).toBe('3');
+    expect(
+      row.querySelector<HTMLElement>('.preview-cards')?.style.getPropertyValue('--preview-columns'),
+    ).toBe('3');
     expect(row.querySelector('.row-toggle')?.textContent).toContain('Voir l’autre carte');
     setGridWidth(root, fixture, 300);
     expect(row.querySelectorAll('#cards-step-1 .mini-card')).toHaveLength(1);
     expect(row.querySelectorAll('.row-preview .mini-card')).toHaveLength(1);
-    expect(row.querySelector<HTMLElement>('.preview-cards')?.style.getPropertyValue('--preview-columns')).toBe('1');
+    expect(
+      row.querySelector<HTMLElement>('.preview-cards')?.style.getPropertyValue('--preview-columns'),
+    ).toBe('1');
     expect(row.querySelector('.row-toggle')?.textContent).toContain('Voir les 3 autres cartes');
     setGridWidth(root, fixture, 950);
     expect(row.querySelectorAll('#cards-step-1 .mini-card')).toHaveLength(4);

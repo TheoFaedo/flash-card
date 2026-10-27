@@ -1,0 +1,16 @@
+<div class="filter-controls">
+  <label for="reported-filter">Afficher</label>
+  <select
+    id="reported-filter"
+    class="filter-select"
+    [value]="filters().reported === true ? 'reported' : 'all'"
+    (change)="setReportedFilter($event)"
+  >
+    <option value="all">Toutes</option>
+    <option value="reported">À modifier</option>
+  </select>
+  <span role="status"
+    >{{ reportedCount() }}
+    {{ reportedCount() === 1 ? 'carte à modifier' : 'cartes à modifier' }}</span
+  >
+</div>

@@ -27,7 +27,8 @@ export const routes: Routes = [
   {
     path: 'oauth/consent',
     title: 'Autorisation · flashcard',
-    loadComponent: () => import('./features/oauth-consent/oauth-consent').then((m) => m.OAuthConsent),
+    loadComponent: () =>
+      import('./features/oauth-consent/oauth-consent').then((m) => m.OAuthConsent),
   },
   { path: '**', redirectTo: '' },
 ];

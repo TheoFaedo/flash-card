@@ -1,8 +1,9 @@
-import { Flashcard, REVIEW_INTERVALS, Subject } from '../shared/flashcard.model';
+import { Flashcard, REVIEW_INTERVALS, Subject } from '../shared/models/flashcard.model';
 import { answerCard, dueOn, isDue } from './review-rules';
 
 const card: Flashcard = {
   id: 'one',
+  reported: false,
   question: 'Question',
   answer: 'Réponse',
   subject: Subject.General,
@@ -25,10 +26,12 @@ describe('review rules', () => {
   it('moves one column in the answer direction and restarts the interval', () => {
     expect(answerCard({ ...card, column: 4 }, true, '2026-09-30')).toMatchObject({
       column: 5,
+      reported: false,
       reviewIntervalStartedOn: '2026-09-30',
     });
     expect(answerCard({ ...card, column: 4 }, false, '2026-09-30')).toMatchObject({
       column: 3,
+      reported: false,
       reviewIntervalStartedOn: '2026-09-30',
     });
   });

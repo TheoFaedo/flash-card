@@ -1,4 +1,12 @@
-import { afterRenderEffect, Component, computed, ElementRef, inject, signal, viewChild } from '@angular/core';
+import {
+  afterRenderEffect,
+  Component,
+  computed,
+  ElementRef,
+  inject,
+  signal,
+  viewChild,
+} from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import {
@@ -9,12 +17,20 @@ import {
   REVIEW_STAGE_NAMES,
   REVIEW_STAGE_ACCENTS,
   Subject,
-} from '../../shared/flashcard.model';
-import { FlashcardStore, ImportedCard, normalizeSubject } from '../../core/flashcard.store';
+} from '../../shared/models/flashcard.model';
+import { FlashcardStore } from '../../core/flashcard.store';
+import {
+  ImportedCard,
+  normalizeSubject,
+  validateImportedCard,
+} from '../../shared/helpers/card-import';
 import { dueOn } from '../../core/review-rules';
 
+import { initialCardFilters, matchesCardFilters } from '../../shared/helpers/card-filters';
+import { CardFilterControls } from './card-filter-controls/card-filter-controls';
+
 @Component({
-  imports: [ReactiveFormsModule, RouterLink],
+  imports: [ReactiveFormsModule, RouterLink, CardFilterControls],
   templateUrl: './cards.html',
   styleUrl: './cards.less',
 })
@@ -33,13 +49,24 @@ export class Cards {
   private readonly firstRowCards = viewChild<ElementRef<HTMLElement>>('firstRowCards');
   protected readonly cardsPerRow = signal(1);
   protected readonly expandedColumns = signal<ReadonlySet<Column>>(new Set());
+  protected readonly filters = signal(initialCardFilters());
+  protected readonly reportedCount = computed(
+    () => this.store.cards().filter((card) => card.reported).length,
+  );
+  protected readonly filteredCards = computed(() =>
+    this.store.cards().filter((card) => matchesCardFilters(card, this.filters())),
+  );
+  protected resetFilters(): void {
+    this.filters.set(initialCardFilters());
+  }
   protected readonly columns = computed(() =>
     REVIEW_INTERVALS.map((days, index) => ({
       number: (index + 1) as Column,
       name: REVIEW_STAGE_NAMES[index],
       accent: REVIEW_STAGE_ACCENTS[index],
       days,
-      cards: this.store.cards().filter((card) => card.column === index + 1),
+      cards: this.filteredCards().filter((card) => card.column === index + 1),
+      total: this.store.cards().filter((card) => card.column === index + 1).length,
     })),
   );
 
@@ -82,6 +109,43 @@ export class Cards {
       else next.add(column);
       return next;
     });
+  }
+
+  protected isColumnExpanded(column: Column): boolean {
+    return this.expandedColumns().has(column);
+  }
+
+  protected remainingCards(column: { cards: Flashcard[] }): number {
+    return column.cards.length - this.cardsPerRow();
+  }
+
+  protected hasOverflowCards(column: { cards: Flashcard[] }): boolean {
+    return this.remainingCards(column) > 0;
+  }
+
+  protected visibleCards(column: { number: Column; cards: Flashcard[] }): Flashcard[] {
+    return this.isColumnExpanded(column.number)
+      ? column.cards
+      : column.cards.slice(0, this.cardsPerRow());
+  }
+
+  protected previewCards(column: { cards: Flashcard[] }): Flashcard[] {
+    const firstRowEnd = this.cardsPerRow();
+    return column.cards.slice(firstRowEnd, firstRowEnd * 2);
+  }
+
+  protected rowToggleLabel(column: { number: Column; cards: Flashcard[] }): string {
+    if (this.isColumnExpanded(column.number)) return 'Voir moins';
+    const remaining = this.remainingCards(column);
+    return remaining === 1 ? 'Voir l’autre carte' : `Voir les ${remaining} autres cartes`;
+  }
+
+  protected rowToggleAccessibleLabel(column: { number: Column; cards: Flashcard[] }): string {
+    return `${this.rowToggleLabel(column)} de l’étape ${column.number}`;
+  }
+
+  protected rowToggleIcon(column: Column): string {
+    return this.isColumnExpanded(column) ? '↑' : '↓';
   }
 
   private defaultSubject(): string {
@@ -184,31 +248,34 @@ export class Cards {
         : typeof parsed === 'object' && parsed !== null && 'cards' in parsed
           ? (parsed as { cards: unknown }).cards
           : null;
-      if (!Array.isArray(value) || value.length === 0) throw new Error('Le fichier doit contenir une liste non vide de cartes.');
-      const cards = value.map((item, index) => {
-        if (typeof item !== 'object' || item === null) throw new Error(`Carte ${index + 1} : objet attendu.`);
-        const card = item as Record<string, unknown>;
-        if (typeof card['question'] !== 'string' || !card['question'].trim() || card['question'].trim().length > 500)
-          throw new Error(`Carte ${index + 1} : question manquante ou trop longue (500 caractères maximum).`);
-        if (typeof card['answer'] !== 'string' || !card['answer'].trim() || card['answer'].trim().length > 1000)
-          throw new Error(`Carte ${index + 1} : réponse manquante ou trop longue (1 000 caractères maximum).`);
-        if (card['subject'] !== undefined && card['subject'] !== null && typeof card['subject'] !== 'string')
-          throw new Error(`Carte ${index + 1} : le sujet doit être du texte.`);
-        const subject = typeof card['subject'] === 'string' ? normalizeSubject(card['subject']) : '';
-        if (subject.length > 50) throw new Error(`Carte ${index + 1} : le sujet dépasse 50 caractères.`);
-        return { question: card['question'].trim(), answer: card['answer'].trim(), subject: subject || null };
-      });
+      if (!Array.isArray(value) || value.length === 0)
+        throw new Error('Le fichier doit contenir une liste non vide de cartes.');
+      const cards = value.map((item, index) => this.parseImportedCard(item, index));
       this.importCards.set(cards);
     } catch (error) {
-      this.importError.set(error instanceof SyntaxError ? 'Le fichier ne contient pas de JSON valide.' : error instanceof Error ? error.message : 'Fichier impossible à lire.');
+      this.importError.set(this.describeImportReadError(error));
     }
+  }
+
+  private describeImportReadError(error: unknown): string {
+    if (error instanceof SyntaxError) return 'Le fichier ne contient pas de JSON valide.';
+    if (error instanceof Error) return error.message;
+    return 'Fichier impossible à lire.';
+  }
+
+  private parseImportedCard(item: unknown, index: number): ImportedCard {
+    const result = validateImportedCard(item, index);
+    if (!result.valid) throw new Error(result.error);
+    return result.card;
   }
 
   protected async confirmImport(): Promise<void> {
     const cards = this.importCards();
     if (!cards.length || this.store.saving()) return;
     if (await this.store.importCards(cards)) {
-      this.importMessage.set(`${cards.length} ${cards.length === 1 ? 'carte importée' : 'cartes importées'}.`);
+      this.importMessage.set(
+        `${cards.length} ${cards.length === 1 ? 'carte importée' : 'cartes importées'}.`,
+      );
       this.importCards.set([]);
       this.importFilename.set('');
     }
@@ -236,50 +303,15 @@ export class Cards {
   }
 
   protected async copyImportPrompt(): Promise<void> {
-    const prompt = `À partir des sources fournies à la fin, crée des cartes de révision autonomes et utiles.
-
-Consignes :
-- Repère les notions importantes dans les sources et transforme-les en questions précises, avec une réponse claire.
-- Une carte doit tester une seule notion. Évite les questions vagues, les doublons et les informations qui ne figurent pas dans les sources.
-- Reformule avec tes propres mots. Garde les réponses concises, mais ajoute le contexte nécessaire pour qu'elles soient compréhensibles seules.
-- Utilise le sujet indiqué pour toutes les cartes. Si aucun sujet n'est indiqué, omets la propriété « subject ».
-- Génère le nombre de cartes demandé. Si ce nombre est impossible à atteindre sans inventer ou répéter des informations, produis-en moins.
-- Réponds uniquement avec du JSON valide, sans introduction, sans balises Markdown ni commentaire. Utilise exactement cette structure :
-
-{
-  "cards": [
-    { "question": "Question ici", "answer": "Réponse ici", "subject": "Sujet ici" }
-  ]
-}
-
-Exemples de cartes attendues (le contenu ci-dessous illustre le format et ne doit pas être repris, sauf s'il est présent dans les sources) :
-{
-  "cards": [
-    {
-      "question": "Quel est le rôle principal des racines chez une plante ?",
-      "answer": "Elles ancrent la plante dans le sol et absorbent l'eau ainsi que les sels minéraux.",
-      "subject": "Biologie"
-    },
-    {
-      "question": "Pourquoi la température d'ébullition de l'eau diminue-t-elle en altitude ?",
-      "answer": "La pression atmosphérique étant plus faible, l'eau atteint sa pression de vapeur d'équilibre à une température plus basse.",
-      "subject": "Physique"
-    }
-  ]
-}
-
-Paramètres :
-- Nombre de cartes souhaité : [NOMBRE]
-- Sujet à utiliser (facultatif) : [SUJET ou « aucun »]
-
-Sources :
-[COLLER LES SOURCES ICI]`;
-
     try {
-      await navigator.clipboard.writeText(prompt);
+      const response = await fetch(new URL('card-import-prompt.md', document.baseURI));
+      if (!response.ok) throw new Error('Ressource de prompt indisponible');
+      await navigator.clipboard.writeText(await response.text());
       this.promptCopyMessage.set('Le modèle de prompt a été copié dans le presse-papiers.');
     } catch {
-      this.promptCopyMessage.set('Impossible de copier automatiquement. Vérifiez les autorisations du navigateur.');
+      this.promptCopyMessage.set(
+        'Impossible de charger ou de copier le modèle. Vérifiez la connexion et les autorisations du navigateur.',
+      );
     }
   }
 }

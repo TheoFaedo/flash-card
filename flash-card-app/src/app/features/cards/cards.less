@@ -87,8 +87,8 @@
 }
 .subjects-panel {
   display: flex;
-    flex-direction: column;
-    gap: 4px;
+  flex-direction: column;
+  gap: 4px;
   padding-left: 1.5rem;
   border-left: 1px solid #d6e1e5;
   padding: 1.25rem;
@@ -100,11 +100,11 @@
   }
 }
 .import-panel {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    border-left: 1px solid #d6e1e5;
-    padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border-left: 1px solid #d6e1e5;
+  padding: 1.25rem;
 }
 .import-panel h3 {
   font-size: 1.1rem;
@@ -160,6 +160,12 @@
 }
 .collection-panel {
   min-width: 0;
+}
+.reset-filters {
+  min-height: 2.5rem;
+  margin: 0.5rem 0 1rem;
+  padding: 0.55rem 0.9rem;
+  font-size: 0.88rem;
 }
 .collection-heading {
   display: flex;
@@ -313,6 +319,12 @@
   align-content: start;
   gap: 0.35rem;
 }
+.mini-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
 .mini-subject {
   color: #316c7f;
   font-size: 0.75rem;
@@ -353,7 +365,8 @@
   .card-editor {
     grid-column: 1 / -1;
   }
-  .subjects-panel, .import-panel {
+  .subjects-panel,
+  .import-panel {
     padding-left: 0;
     border-left: 0;
     border-top: 1px solid #d6e1e5;
@@ -377,7 +390,8 @@
   .card-editor form .form-actions {
     grid-column: auto;
   }
-  .subjects-panel, .import-panel {
+  .subjects-panel,
+  .import-panel {
     padding: 1.25rem 0 0;
     border-left: 0;
   }
@@ -393,4 +407,17 @@
   .row-heading {
     flex-wrap: wrap;
   }
+}
+
+.reported {
+  outline: 3px solid #a15c00;
+}
+.reported-badge {
+  display: inline-block;
+  width: fit-content;
+  padding: 0.2rem 0.5rem;
+  background: #fff0cf;
+  color: #704000;
+  border-radius: 0.3rem;
+  font-weight: 700;
 }

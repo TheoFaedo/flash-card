@@ -90,6 +90,7 @@ describe('FlashcardStore', () => {
     expect(store.cards()[0]).toMatchObject({
       question: 'Q',
       column: 1,
+      reported: false,
       reviewIntervalStartedOn: localDay(new Date()),
     });
     const id = store.cards()[0].id;
@@ -101,6 +102,36 @@ describe('FlashcardStore', () => {
     expect(await store.removeSubject('Histoire')).toBe(true);
     expect(await store.remove(id)).toBe(true);
     expect(store.cards()).toEqual([]);
+  });
+
+  it('persists reports without changing content or progression and clears them only after a successful correction', async () => {
+    const { store, setFail } = setup();
+    await store.reload();
+    await store.add({ question: 'Q', answer: 'R', subject: null });
+    const original = store.cards()[0];
+    expect(original.reported).toBe(false);
+    const pending = store.setReported(original.id, true);
+    expect(store.saving()).toBe(true);
+    expect(store.cards()[0].reported).toBe(false);
+    expect(await store.setReported(original.id, false)).toBe(false);
+    expect(await pending).toBe(true);
+    expect(store.cards()[0]).toEqual({ ...original, reported: true });
+    await store.reload();
+    expect(store.cards()[0].reported).toBe(true);
+    setFail(true);
+    expect(await store.setReported(original.id, false)).toBe(false);
+    expect(await store.edit(original.id, { question: 'Fixed', answer: 'R', subject: null })).toBe(
+      false,
+    );
+    expect(store.cards()[0]).toEqual({ ...original, reported: true });
+    setFail(false);
+    expect(await store.setReported(original.id, false)).toBe(true);
+    expect(store.cards()[0]).toEqual(original);
+    await store.setReported(original.id, true);
+    expect(await store.edit(original.id, { question: 'Fixed', answer: 'R', subject: null })).toBe(
+      true,
+    );
+    expect(store.cards()[0]).toEqual({ ...original, question: 'Fixed', reported: false });
   });
 
   it('keeps visible data unchanged when saving fails and clears it on sign-out', async () => {

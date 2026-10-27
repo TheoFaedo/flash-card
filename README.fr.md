@@ -73,3 +73,13 @@ Les anciennes clés `localStorage` (`flashcard.cards.v1` et `flashcard.data.v2`)
 Après avoir appliqué la migration, se connecter avec deux comptes Google distincts. Pour chaque compte, créer une carte et un sujet, actualiser la page, puis vérifier que seules ses propres données sont visibles. Réviser, modifier et supprimer une carte ; retirer un sujet assigné et vérifier que sa carte passe à « Sans sujet ». Vérifier que la déconnexion vide immédiatement l'affichage et que `/` et `/cartes` redirigent vers la connexion.
 
 Pour vérifier RLS directement, utiliser deux sessions API avec les jetons d'accès respectifs : une requête `select`, `update` ou `delete` ciblant l'identifiant d'une carte ou d'un sujet de l'autre compte ne doit retourner aucune ligne ; une insertion de carte utilisant le `subject_id` de l'autre compte doit échouer sur la clé étrangère composée. Répéter sans jeton : l'accès aux deux tables doit être refusé.
+
+## Cartes à modifier et filtres
+
+En révision et en entraînement, la bascule « À modifier » signale la carte sur les deux faces. Le badge et la surbrillance ambrée apparaissent aussi dans la collection et ses aperçus. Le signalement attend la confirmation serveur et conserve la carte, sa face et sa progression. En cas d’erreur, réessayez ; la carte reste affichée.
+
+Dans la collection, « Toutes / À modifier » filtre avant le regroupement par étape et les lignes repliées. Le compteur indique toutes les cartes signalées. Les filtres restent en mémoire tant que la page est ouverte ; un résultat vide permet de les réinitialiser. L’entraînement parcourt toujours toutes les cartes de l’étape. Vous pouvez annuler un signalement dans la collection. Enregistrer une correction le retire automatiquement ; annuler l’édition le conserve.
+
+Les réponses MCP incluent `reported`. `list_cards` accepte `reported: true` ou `false` et filtre avant pagination ; omettre ce paramètre retourne toutes les cartes. `update_card` retire le signalement dans la même requête que la correction. Les règles RLS existantes isolent les comptes. Le format JSON d’import/export reste inchangé ; les imports ne sont pas signalés.
+
+Déploiement : appliquer d’abord `flash-card-app/supabase/migrations/20261027000000_reported_cards.sql` (`supabase db push` depuis `flash-card-app`), puis déployer la fonction MCP et l’application. La migration ajoute `cards.reported boolean not null default false` aux cartes existantes et futures.

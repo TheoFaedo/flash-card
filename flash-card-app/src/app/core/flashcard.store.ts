@@ -1,5 +1,6 @@
 import { computed, effect, inject, OnDestroy, Service, signal } from '@angular/core';
-import { CardContent, Column, Flashcard } from '../shared/flashcard.model';
+import { CardContent, Column, Flashcard } from '../shared/models/flashcard.model';
+import { ImportedCard, normalizeSubject } from '../shared/helpers/card-import';
 import { AuthService } from './auth.service';
 import { answerCard, dueOn, isDue, localDay } from './review-rules';
 
@@ -9,21 +10,12 @@ interface SubjectRow {
 }
 interface CardRow {
   id: string;
+  reported: boolean;
   question: string;
   answer: string;
   subject_id: string | null;
   column: Column;
   review_interval_started_on: string;
-}
-
-export function normalizeSubject(value: string): string {
-  return value.trim().replace(/\s+/g, ' ');
-}
-
-export interface ImportedCard {
-  question: string;
-  answer: string;
-  subject: string | null;
 }
 
 @Service()
@@ -44,6 +36,7 @@ export class FlashcardStore implements OnDestroy {
   readonly cards = computed<Flashcard[]>(() =>
     this.cardRows().map((row) => ({
       id: row.id,
+      reported: row.reported,
       question: row.question,
       answer: row.answer,
       subject: this.subjectRows().find((subject) => subject.id === row.subject_id)?.name ?? null,
@@ -93,7 +86,7 @@ export class FlashcardStore implements OnDestroy {
         client.from('subjects').select('id,name').eq('user_id', userId).order('name'),
         client
           .from('cards')
-          .select('id,question,answer,subject_id,column,review_interval_started_on')
+          .select('id,question,answer,subject_id,column,reported,review_interval_started_on')
           .eq('user_id', userId)
           .order('created_at'),
       ]);
@@ -152,10 +145,11 @@ export class FlashcardStore implements OnDestroy {
           question: content.question.trim(),
           answer: content.answer.trim(),
           subject_id: subjectId,
+          reported: false,
           column: 1,
           review_interval_started_on: localDay(new Date()),
         })
-        .select('id,question,answer,subject_id,column,review_interval_started_on')
+        .select('id,question,answer,subject_id,column,reported,review_interval_started_on')
         .single();
       if (error) throw error;
       if (this.auth.user()?.id === userId)
@@ -167,12 +161,19 @@ export class FlashcardStore implements OnDestroy {
     if (contents.length === 0) return false;
     return this.mutate(async (userId) => {
       const client = this.auth.client!;
-      const names = [...new Set(contents.map((card) => card.subject).filter((name): name is string => !!name))];
+      const names = [
+        ...new Set(contents.map((card) => card.subject).filter((name): name is string => !!name)),
+      ];
       for (const name of names) {
         if (this.subjectId(name) !== undefined) continue;
-        const { data, error } = await client.from('subjects').insert({ user_id: userId, name }).select('id,name').single();
+        const { data, error } = await client
+          .from('subjects')
+          .insert({ user_id: userId, name })
+          .select('id,name')
+          .single();
         if (error) throw error;
-        if (this.auth.user()?.id === userId) this.subjectRows.update((rows) => [...rows, data as SubjectRow]);
+        if (this.auth.user()?.id === userId)
+          this.subjectRows.update((rows) => [...rows, data as SubjectRow]);
       }
       const today = localDay(new Date());
       const rows = contents.map((card) => ({
@@ -180,12 +181,17 @@ export class FlashcardStore implements OnDestroy {
         question: card.question.trim(),
         answer: card.answer.trim(),
         subject_id: this.subjectId(card.subject) ?? null,
+        reported: false,
         column: 1 as Column,
         review_interval_started_on: today,
       }));
-      const { data, error } = await client.from('cards').insert(rows).select('id,question,answer,subject_id,column,review_interval_started_on');
+      const { data, error } = await client
+        .from('cards')
+        .insert(rows)
+        .select('id,question,answer,subject_id,column,reported,review_interval_started_on');
       if (error) throw error;
-      if (this.auth.user()?.id === userId) this.cardRows.update((current) => [...current, ...(data as CardRow[])]);
+      if (this.auth.user()?.id === userId)
+        this.cardRows.update((current) => [...current, ...(data as CardRow[])]);
     });
   }
 
@@ -199,12 +205,31 @@ export class FlashcardStore implements OnDestroy {
           question: content.question.trim(),
           answer: content.answer.trim(),
           subject_id: subjectId,
+          reported: false,
         })
         .eq('user_id', userId)
         .eq('id', id)
-        .select('id,question,answer,subject_id,column,review_interval_started_on')
+        .select('id,question,answer,subject_id,column,reported,review_interval_started_on')
         .single();
       if (error) throw error;
+      if (this.auth.user()?.id === userId)
+        this.cardRows.update((rows) =>
+          rows.map((row) => (row.id === id ? (data as CardRow) : row)),
+        );
+    });
+  }
+
+  async setReported(id: string, reported: boolean): Promise<boolean> {
+    if (!this.cardRows().some((card) => card.id === id)) return false;
+    return this.mutate(async (userId) => {
+      const { data, error } = await this.auth
+        .client!.from('cards')
+        .update({ reported })
+        .eq('user_id', userId)
+        .eq('id', id)
+        .select('id,question,answer,subject_id,column,reported,review_interval_started_on')
+        .single();
+      if (error || !data) throw error ?? new Error('Carte absente');
       if (this.auth.user()?.id === userId)
         this.cardRows.update((rows) =>
           rows.map((row) => (row.id === id ? (data as CardRow) : row)),
@@ -241,7 +266,7 @@ export class FlashcardStore implements OnDestroy {
         })
         .eq('user_id', userId)
         .eq('id', id)
-        .select('id,question,answer,subject_id,column,review_interval_started_on')
+        .select('id,question,answer,subject_id,column,reported,review_interval_started_on')
         .single();
       if (error) throw error;
       if (this.auth.user()?.id === userId)

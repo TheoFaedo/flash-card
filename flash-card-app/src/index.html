@@ -10,7 +10,11 @@
       if (path) {
         const query = params.get('q');
         const hash = params.get('h');
-        history.replaceState(null, '', path + (query ? `?${query}` : '') + (hash ? `#${hash}` : ''));
+        history.replaceState(
+          null,
+          '',
+          path + (query ? `?${query}` : '') + (hash ? `#${hash}` : ''),
+        );
       }
     </script>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
