@@ -3,11 +3,35 @@
     <div>
       <p class="section-kicker">Votre séance</p>
       <h1 id="page-title">
-        {{ trainingColumn === null ? 'Réviser aujourd’hui' : 'S’entraîner sur une étape' }}
+        {{ title() }}
       </h1>
       <p>Une carte à la fois. Répondez dans votre tête, puis retournez-la.</p>
     </div>
-    <a class="text-link" routerLink="/cartes">Gérer mes cartes <span aria-hidden="true">↗</span></a>
+    <div class="session-navigation">
+      @if (isTraining()) {
+        <a class="button button-secondary" routerLink="/">Réviser aujourd’hui</a>
+      } @else {
+        <button
+          type="button"
+          class="button button-secondary"
+          [disabled]="store.loading() || !store.loaded() || store.tomorrowCards().length === 0"
+          [attr.aria-describedby]="
+            store.loaded() && !store.loading() && store.tomorrowCards().length === 0
+              ? 'tomorrow-empty'
+              : null
+          "
+          (click)="startTomorrowTraining()"
+        >
+          S’entraîner sur la session de demain
+        </button>
+        @if (store.loaded() && !store.loading() && store.tomorrowCards().length === 0) {
+          <p id="tomorrow-empty">Aucune carte prévue pour demain.</p>
+        }
+      }
+      <a class="text-link" routerLink="/cartes"
+        >Gérer mes cartes <span aria-hidden="true">↗</span></a
+      >
+    </div>
   </div>
 
   @if (store.loading()) {
@@ -24,11 +48,19 @@
   } @else if (trainingFinished()) {
     <div class="empty-session">
       <div class="empty-icon" aria-hidden="true">✓</div>
-      <h2 #emptyHeading tabindex="-1">Entraînement terminé</h2>
-      <p>
-        Vous avez parcouru les cartes de l’étape {{ trainingColumn }} ·
-        {{ stageName(trainingColumn!) }}.
-      </p>
+      <h2 #emptyHeading tabindex="-1">
+        {{ emptyTomorrowTraining() ? 'Aucune carte prévue pour demain' : 'Entraînement terminé' }}
+      </h2>
+      @if (tomorrowTraining()) {
+        @if (!emptyTomorrowTraining()) {
+          <p>Vous avez parcouru toutes les cartes de la session de demain.</p>
+        }
+      } @else {
+        <p>
+          Vous avez parcouru les cartes de l’étape {{ trainingColumn() }} ·
+          {{ stageName(trainingColumn()!) }}.
+        </p>
+      }
       <a class="button button-secondary" routerLink="/cartes">Voir mes cartes</a>
     </div>
   } @else if (card(); as current) {
@@ -111,10 +143,10 @@
     @if (flipState() === 'answer') {
       <div class="review-actions" aria-label="Évaluer votre réponse">
         <p>
-          {{ trainingColumn !== null ? 'Prêt à continuer ?' : 'Aviez-vous la bonne réponse ?' }}
+          {{ isTraining() ? 'Prêt à continuer ?' : 'Aviez-vous la bonne réponse ?' }}
         </p>
         <div class="action-row">
-          @if (trainingColumn !== null) {
+          @if (isTraining()) {
             <button
               #nextButton
               [disabled]="store.saving()"

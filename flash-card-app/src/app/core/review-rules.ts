@@ -7,12 +7,16 @@ export function localDay(date: Date): string {
   return `${year}-${month}-${day}`;
 }
 
-export function dueOn(card: Flashcard): string {
-  const [year, month, day] = card.reviewIntervalStartedOn.split('-').map(Number);
+export function addCalendarDays(date: string, days: number): string {
+  const [year, month, day] = date.split('-').map(Number);
   // Noon avoids daylight-saving transitions around midnight.
   const due = new Date(year, month - 1, day, 12);
-  due.setDate(due.getDate() + REVIEW_INTERVALS[card.column - 1]);
+  due.setDate(due.getDate() + days);
   return localDay(due);
+}
+
+export function dueOn(card: Flashcard): string {
+  return addCalendarDays(card.reviewIntervalStartedOn, REVIEW_INTERVALS[card.column - 1]);
 }
 
 export function isDue(card: Flashcard, today: string): boolean {

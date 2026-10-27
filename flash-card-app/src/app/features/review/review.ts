@@ -1,5 +1,15 @@
-import { Component, computed, effect, ElementRef, inject, signal, viewChild } from '@angular/core';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import {
+  Component,
+  computed,
+  effect,
+  ElementRef,
+  inject,
+  signal,
+  untracked,
+  viewChild,
+} from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FlashcardStore } from '../../core/flashcard.store';
 import {
   Flashcard,
@@ -15,21 +25,37 @@ import {
 export class Review {
   protected readonly store = inject(FlashcardStore);
   private readonly route = inject(ActivatedRoute);
-  protected readonly trainingColumn = this.readTrainingColumn();
+  private readonly router = inject(Router);
+  private readonly queryParams = toSignal(this.route.queryParamMap, {
+    initialValue: this.route.snapshot.queryParamMap,
+  });
+  private readonly trainingMode = computed(() => {
+    const params = this.queryParams();
+    if (params.get('entrainement') === 'demain') return 'tomorrow';
+    const column = Number(params.get('etape'));
+    return Number.isInteger(column) && column >= 1 && column <= 7 ? column : null;
+  });
+  protected readonly trainingColumn = computed(() => {
+    const mode = this.trainingMode();
+    return typeof mode === 'number' ? mode : null;
+  });
+  protected readonly tomorrowTraining = computed(() => this.trainingMode() === 'tomorrow');
+  protected readonly isTraining = computed(() => this.trainingMode() !== null);
+  protected readonly title = computed(() => {
+    if (this.tomorrowTraining()) return 'S’entraîner sur la session de demain';
+    return this.isTraining() ? 'S’entraîner sur une étape' : 'Réviser aujourd’hui';
+  });
   protected readonly stageName = (column: number) => REVIEW_STAGE_NAMES[column - 1];
   protected readonly stageAccent = (column: number) => REVIEW_STAGE_ACCENTS[column - 1];
   private readonly trainingCards = signal<string[]>([]);
   private readonly trainingIndex = signal(0);
-  private readonly trainingInitialized = signal(false);
   protected readonly card = computed(() => this.currentCard());
   protected readonly remaining = computed(() =>
-    this.trainingColumn === null
+    !this.isTraining()
       ? this.store.dueCards().length
       : Math.max(0, this.trainingCards().length - this.trainingIndex()),
   );
-  protected readonly trainingFinished = computed(
-    () => this.trainingColumn !== null && this.remaining() === 0,
-  );
+  protected readonly trainingFinished = computed(() => this.isTraining() && this.remaining() === 0);
   protected readonly flipState = signal<'question' | 'flipping' | 'answer'>('question');
   protected readonly correctButton = viewChild<ElementRef<HTMLButtonElement>>('correctButton');
   protected readonly revealButton = viewChild<ElementRef<HTMLButtonElement>>('revealButton');
@@ -37,21 +63,21 @@ export class Review {
   protected readonly nextButton = viewChild<ElementRef<HTMLButtonElement>>('nextButton');
 
   private currentCard(): Flashcard | null {
-    if (this.trainingColumn === null) return this.store.dueCards()[0] ?? null;
+    if (!this.isTraining()) return this.store.dueCards()[0] ?? null;
     const currentId = this.trainingCards()[this.trainingIndex()];
     return this.store.cards().find((card) => card.id === currentId) ?? null;
   }
 
   protected remainingLabel(): string {
     const count = this.remaining();
-    if (this.trainingColumn === null) {
+    if (!this.isTraining()) {
       return count === 1 ? 'carte à réviser' : 'cartes à réviser';
     }
     return count === 1 ? 'carte restante' : 'cartes restantes';
   }
 
   protected sessionStageColumn(cardColumn: number): number {
-    return this.trainingColumn ?? cardColumn;
+    return this.trainingColumn() ?? cardColumn;
   }
 
   protected isLegendSessionStage(cardColumn: number): boolean {
@@ -76,22 +102,27 @@ export class Review {
 
   constructor() {
     effect(() => {
-      if (this.trainingColumn !== null && this.store.loaded() && !this.trainingInitialized()) {
-        this.trainingCards.set(
-          this.store
-            .cards()
-            .filter((card) => card.column === this.trainingColumn)
-            .map((card) => card.id),
-        );
-        this.trainingInitialized.set(true);
-      }
+      const mode = this.trainingMode();
+      const loaded = this.store.loaded();
+      untracked(() => {
+        this.trainingIndex.set(0);
+        this.flipState.set('question');
+        const cards =
+          mode === 'tomorrow'
+            ? this.store.tomorrowCards()
+            : this.store.cards().filter((card) => card.column === mode);
+        this.trainingCards.set(loaded && mode !== null ? cards.map((card) => card.id) : []);
+      });
     });
   }
 
-  private readTrainingColumn(): number | null {
-    const value = Number(this.route.snapshot.queryParamMap.get('etape'));
-    return Number.isInteger(value) && value >= 1 && value <= 7 ? value : null;
+  protected startTomorrowTraining(): void {
+    void this.router.navigate(['/'], { queryParams: { entrainement: 'demain' } });
   }
+
+  protected readonly emptyTomorrowTraining = computed(
+    () => this.tomorrowTraining() && this.trainingCards().length === 0,
+  );
 
   protected reveal(): void {
     if (this.store.saving() || !this.card() || this.flipState() !== 'question') return;
@@ -115,16 +146,13 @@ export class Review {
   private showAnswer(): void {
     this.flipState.set('answer');
     setTimeout(() =>
-      (this.trainingColumn !== null
-        ? this.nextButton()
-        : this.correctButton()
-      )?.nativeElement.focus(),
+      (this.isTraining() ? this.nextButton() : this.correctButton())?.nativeElement.focus(),
     );
   }
 
   protected async answer(correct: boolean): Promise<void> {
     if (this.store.saving()) return;
-    if (this.trainingColumn !== null) {
+    if (this.isTraining()) {
       if (this.flipState() !== 'answer' || !this.card()) return;
       this.trainingIndex.update((index) => index + 1);
       this.flipState.set('question');

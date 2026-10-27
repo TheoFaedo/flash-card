@@ -1,12 +1,13 @@
 import { TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
 import { SupabaseClient, User } from '@supabase/supabase-js';
-import { vi } from 'vitest';
+import { afterEach, vi } from 'vitest';
 import { AuthService } from './auth.service';
 import { FlashcardStore } from './flashcard.store';
-import { localDay } from './review-rules';
+import { addCalendarDays, localDay } from './review-rules';
 
 describe('FlashcardStore', () => {
+  afterEach(() => vi.useRealTimers());
   function setup() {
     const subjects = [{ id: 's1', name: 'Général' }];
     const cards: Array<Record<string, unknown>> = [];
@@ -81,6 +82,48 @@ describe('FlashcardStore', () => {
       },
     };
   }
+
+  it.each([
+    [2026, 0, 31, '2026-02-01'],
+    [2026, 11, 31, '2027-01-01'],
+    [2026, 2, 28, '2026-03-29'],
+    [2026, 2, 29, '2026-03-30'],
+    [2026, 9, 24, '2026-10-25'],
+    [2026, 9, 25, '2026-10-26'],
+  ])(
+    'selects exactly tomorrow across calendar transitions (%s-%s-%s)',
+    async (year, month, day, tomorrow) => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date(year, month, day, 23, 30));
+      const { store, cards } = setup();
+      const today = localDay(new Date());
+      for (const [id, started, column] of [
+        ['overdue', '2025-01-01', 1],
+        ['due-today', addCalendarDays(today, -1), 1],
+        ['today', today, 1],
+        ['later', tomorrow, 1],
+        ['today-too', today, 2],
+      ] as const) {
+        cards.push({
+          id,
+          question: id,
+          answer: 'R',
+          reported: false,
+          subject_id: null,
+          column,
+          review_interval_started_on: started,
+        });
+      }
+      await store.reload();
+      expect(store.tomorrowCards().map((card) => card.id)).toEqual(['today']);
+      // A newly added card joins the reactive list in the store's current order.
+      await store.add({ question: 'New', answer: 'R', subject: null });
+      expect(store.tomorrowCards().map((card) => card.question)).toEqual(['today', 'New']);
+      // The store advances by local calendar day at midnight.
+      vi.advanceTimersByTime(31 * 60_000);
+      expect(store.tomorrowCards().map((card) => card.id)).toEqual(['later', 'today-too']);
+    },
+  );
 
   it('loads account data and confirms card and subject changes after database success', async () => {
     const { store } = setup();

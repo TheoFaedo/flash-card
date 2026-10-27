@@ -2,7 +2,7 @@ import { computed, effect, inject, OnDestroy, Service, signal } from '@angular/c
 import { CardContent, Column, Flashcard } from '../shared/models/flashcard.model';
 import { ImportedCard, normalizeSubject } from '../shared/helpers/card-import';
 import { AuthService } from './auth.service';
-import { answerCard, dueOn, isDue, localDay } from './review-rules';
+import { addCalendarDays, answerCard, dueOn, isDue, localDay } from './review-rules';
 
 interface SubjectRow {
   id: string;
@@ -50,6 +50,11 @@ export class FlashcardStore implements OnDestroy {
       .filter((card) => isDue(card, this.dayState()))
       .sort((a, b) => dueOn(a).localeCompare(dueOn(b))),
   );
+
+  readonly tomorrowCards = computed(() => {
+    const tomorrow = addCalendarDays(this.dayState(), 1);
+    return this.cards().filter((card) => dueOn(card) === tomorrow);
+  });
 
   constructor() {
     effect(() => {
